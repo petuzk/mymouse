@@ -1,0 +1,14 @@
+# Copyright (c) 2021 Taras Radchenko
+# SPDX-License-Identifier: MIT
+
+description: ADNS-7530 optical motion sensor
+
+compatible: "pixart,adns7530"
+
+include: "spi-device.yaml"
+
+properties:
+  mot-gpios:
+    type: phandle-array
+    required: true
+    description: MOT pin.
