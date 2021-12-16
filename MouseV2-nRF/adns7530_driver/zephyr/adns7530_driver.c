@@ -58,7 +58,7 @@ static inline int adns7530_reg_write(const struct device *restrict dev, uint8_t 
 	return spi_transceive_dt(adns7530_get_spi(dev), &tx, NULL);
 }
 
-static int adns7530_init(const struct device *dev) {
+int adns7530_init(const struct device *dev) {
 	adns7530_reg_write(dev, ADNS7530_REG_POWER_UP_RESET, ADNS7530_RESET_VALUE);
 	k_msleep(10);
 	adns7530_reg_write(dev, ADNS7530_REG_OBSERVATION, 0x00);
@@ -97,10 +97,14 @@ static int adns7530_init(const struct device *dev) {
 	adns7530_reg_write(dev, ADNS7530_REG_REST2_DOWNSHIFT, 0x0A);
 	adns7530_reg_write(dev, ADNS7530_REG_REST3_RATE, 0x63);
 
+#ifdef CONFIG_ADNS7530_TRIGGER
+	return adns7530_init_trigger(dev);
+#endif
+
 	return 0;
 }
 
-static int adns7530_sample_fetch(const struct device *dev, enum sensor_channel chan) {
+int adns7530_sample_fetch(const struct device *dev, enum sensor_channel chan) {
 	struct adns7530_data* data = dev->data;
 	struct {
 		uint8_t motion;
@@ -130,7 +134,7 @@ static int adns7530_sample_fetch(const struct device *dev, enum sensor_channel c
 	return 0;
 }
 
-static int adns7530_channel_get(const struct device *dev, enum sensor_channel chan, struct sensor_value *val) {
+int adns7530_channel_get(const struct device *dev, enum sensor_channel chan, struct sensor_value *val) {
 	struct adns7530_data* data = dev->data;
 
 	switch (chan) {
@@ -147,18 +151,24 @@ static int adns7530_channel_get(const struct device *dev, enum sensor_channel ch
 	return 0;
 }
 
-static struct adns7530_data adns7530_data = {
-	.delta_x = 0,
-	.delta_y = 0
-};
+static struct adns7530_data adns7530_data = { };
 
 static struct adns7530_config adns7530_config = {
-	.spi = SPI_DT_SPEC_INST_GET(0, ADNS7530_SPI_OPERATION, 0)
+	.spi = SPI_DT_SPEC_INST_GET(0, ADNS7530_SPI_OPERATION, 0),
+#ifdef CONFIG_ADNS7530_TRIGGER
+	// motion pin config
+	.mot_label = DT_INST_GPIO_LABEL(0, mot_gpios),
+	.mot_pin = DT_INST_GPIO_PIN(0, mot_gpios),
+	.mot_flags = DT_INST_GPIO_FLAGS(0, mot_gpios),
+#endif
 };
 
 static const struct sensor_driver_api adns7530_api_funcs = {
 	.sample_fetch = adns7530_sample_fetch,
 	.channel_get = adns7530_channel_get,
+#ifdef CONFIG_ADNS7530_TRIGGER
+	.trigger_set = adns7530_trigger_set,
+#endif
 };
 
 DEVICE_DT_INST_DEFINE(

@@ -83,12 +83,44 @@ extern "C" {
 
 struct adns7530_config {
 	struct spi_dt_spec spi;
+
+#ifdef CONFIG_ADNS7530_TRIGGER
+	// motion pin config
+	const char *mot_label;
+	uint8_t mot_pin;
+	uint8_t mot_flags;
+#endif
 };
 
 struct adns7530_data {
 	int16_t delta_x;
 	int16_t delta_y;
+
+#ifdef CONFIG_ADNS7530_TRIGGER
+	const struct device *mot_gpio;
+	struct gpio_callback mot_callback;
+
+	// sensor itself, needed to obtain `dev` from gpio callback
+	const struct device *dev;
+
+	// used to schedule trigger handler call
+	struct k_work work;
+
+	// user-specified trigger
+	struct sensor_trigger trig;
+	sensor_trigger_handler_t trigger_handler;
+#endif
 };
+
+int adns7530_init(const struct device *dev);
+
+int adns7530_sample_fetch(const struct device *dev, enum sensor_channel chan);
+int adns7530_channel_get(const struct device *dev, enum sensor_channel chan, struct sensor_value *val);
+
+#ifdef CONFIG_ADNS7530_TRIGGER
+int adns7530_init_trigger(const struct device *dev);
+int adns7530_trigger_set(const struct device *dev, const struct sensor_trigger *trig, sensor_trigger_handler_t handler);
+#endif
 
 #ifdef __cplusplus
 }

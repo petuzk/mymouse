@@ -16,4 +16,9 @@ config ADNS7530_SURF_QUAL_THRESHOLD
 	help
 	  Readings indicating surface quality lower than the given threshold are ignored.
 
+config ADNS7530_TRIGGER
+	bool "Enable trigger API"
+	help
+	  If enabled, the user may specify a handler to be called when sensor's MOT pin becomes active.
+
 endif # ADNS7530
