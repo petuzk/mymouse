@@ -4,27 +4,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "hello_world_driver.h"
-#include <stdio.h>
 #include <zephyr.h>
+#include <drivers/sensor.h>
 
-const struct device *dev;
-
-static void user_entry(void *p1, void *p2, void *p3)
+static void user_entry(const struct device *adns7530, void *p2, void *p3)
 {
-	hello_world_print(dev);
+	// hello_world_print(dev);
 }
 
 void main(void)
 {
-	printk("Hello World from the app!\n");
+	const struct device *adns7530 = DEVICE_DT_GET_ANY(adns7530);
 
-	dev = device_get_binding("CUSTOM_DRIVER");
+	if (!adns7530) {
+		return;
+	}
 
-	__ASSERT(dev, "Failed to get device binding");
+	if (!device_is_ready(adns7530)) {
+		return;
+	}
 
-	printk("device is %p, name is %s\n", dev, dev->name);
+	struct sensor_value dx, dy;
 
-	k_object_access_grant(dev, k_current_get());
-	k_thread_user_mode_enter(user_entry, NULL, NULL, NULL);
+	sensor_sample_fetch(adns7530);
+	sensor_channel_get(adns7530, SENSOR_CHAN_POS_DX, &dx);
+	sensor_channel_get(adns7530, SENSOR_CHAN_POS_DY, &dy);
+
+	k_object_access_grant(adns7530, k_current_get());
+	k_thread_user_mode_enter(user_entry, adns7530, NULL, NULL);
 }
