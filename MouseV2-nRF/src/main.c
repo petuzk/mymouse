@@ -10,6 +10,8 @@
 #include <drivers/sensor.h>
 #include <drivers/gpio.h>
 
+#include "bluetooth.h"
+
 // static void user_entry(const struct device *adns7530, void *p2, void *p3)
 // {
 // 	// hello_world_print(dev);
@@ -27,6 +29,10 @@ void main(void) {
 	const struct device *adns7530 = DEVICE_DT_GET_ONE(pixart_adns7530);
 
 	if (!device_is_ready(adns7530)) {
+		return;
+	}
+
+	if (mv2_bt_init()) {
 		return;
 	}
 
