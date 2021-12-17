@@ -31,13 +31,27 @@ static inline int adns7530_reg_read(const struct device *restrict dev, uint8_t r
 		.count = 1
 	};
 
-	struct spi_buf rx_buf = {
-		.buf = dst,
-		.len = count
+	if (dst == NULL) {
+		// for some reason when `spi_buf.buf` is NULL, `spi_buf.len` is ignored and always equals to 1.
+		// therefore some valid memory region has to be allocated and proveded as a buf.
+		uint8_t dst_dummy_buf[count];
+		dst = dst_dummy_buf;
+	}
+	struct spi_buf rx_buf[2] = {
+		// after some debugging with logic analyzer, it looks like the first byte is not clocked out
+		// but gets written to the destination buffer. therefore the first spi_buf is required to skip it.
+		{
+			.buf = NULL,
+			.len = 1
+		},
+		{
+			.buf = dst,
+			.len = count
+		}
 	};
 	const struct spi_buf_set rx = {
-		.buffers = &rx_buf,
-		.count = 1
+		.buffers = rx_buf,
+		.count = 2
 	};
 
 	return spi_transceive_dt(adns7530_get_spi(dev), &tx, &rx);
@@ -63,7 +77,7 @@ int adns7530_init(const struct device *dev) {
 	k_msleep(10);
 	adns7530_reg_write(dev, ADNS7530_REG_OBSERVATION, 0x00);
 	k_msleep(10);
-	uint8_t observation_val;
+	uint8_t observation_val = 0;
 	adns7530_reg_read(dev, ADNS7530_REG_OBSERVATION, &observation_val, 1);
 	if ((observation_val & 0xF) != 0xF) {
 		return -ENODATA;
@@ -80,7 +94,7 @@ int adns7530_init(const struct device *dev) {
 	adns7530_reg_write(dev, 0x37, 0xB9);
 
 	// Verify product ID
-	uint8_t product_id;
+	uint8_t product_id = 0;
 	adns7530_reg_read(dev, ADNS7530_REG_PRODUCT_ID, &product_id, 1);
 	if (product_id != ADNS7530_PRODUCT_ID) {
 		return -ENODATA;
@@ -112,7 +126,7 @@ int adns7530_sample_fetch(const struct device *dev, enum sensor_channel chan) {
 		uint8_t delta_y_l;
 		uint8_t delta_xy_h;
 		uint8_t surf_qual;
-	} motion_burst;
+	} motion_burst = {};
 
 	adns7530_reg_read(dev, ADNS7530_REG_MOTION_BURST, &motion_burst, sizeof(motion_burst));
 

@@ -37,7 +37,7 @@
 
 &spi0 {
 	status = "okay";
-	compatible = "nordic,nrf-spim";
+	compatible = "nordic,nrf-spi";
 	sck-pin = <15>;
 	miso-pin = <17>;
 	mosi-pin = <18>;
