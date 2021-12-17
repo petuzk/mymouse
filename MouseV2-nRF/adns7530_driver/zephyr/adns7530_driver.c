@@ -130,13 +130,15 @@ int adns7530_sample_fetch(const struct device *dev, enum sensor_channel chan) {
 
 	adns7530_reg_read(dev, ADNS7530_REG_MOTION_BURST, &motion_burst, sizeof(motion_burst));
 
+	if (motion_burst.motion & ADNS7530_LASER_FAULT_MASK || !(motion_burst.motion & ADNS7530_LASER_CFG_VALID_MASK)) {
+		return -ENODATA;
+	}
+
+	// ADNS7530_MOTION_FLAG probably means "data ready" rather than "motion detected"
 	if (!(motion_burst.motion & ADNS7530_MOTION_FLAG) || motion_burst.surf_qual < CONFIG_ADNS7530_SURF_QUAL_THRESHOLD) {
 		data->delta_x = data->delta_y = 0;
 		return 0;
 	}
-
-	__ASSERT(!(motion_burst.motion & ADNS7530_LASER_FAULT_MASK), "laser fault: –VCSEL pin is shortened");
-	__ASSERT(motion_burst.motion & ADNS7530_LASER_CFG_VALID_MASK, "invalid laser configuration");
 
 	data->delta_x = motion_burst.delta_x_l | ((motion_burst.delta_xy_h & 0xF0) << 4);
 	data->delta_y = motion_burst.delta_y_l | ((motion_burst.delta_xy_h & 0x0F) << 8);

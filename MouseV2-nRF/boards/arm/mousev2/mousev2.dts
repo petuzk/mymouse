@@ -43,7 +43,7 @@
 	mosi-pin = <18>;
 	cs-gpios = <&gpio0 20 GPIO_ACTIVE_LOW>, <&gpio0 11 GPIO_ACTIVE_LOW>;  // ADNS (20), AVR(11)
 
-	adns7530: adns7530@0 {
+	adns7530@0 {
 		compatible = "pixart,adns7530";
 		reg = <0>;
 		mot-gpios = <&gpio0 19 GPIO_ACTIVE_LOW>;
