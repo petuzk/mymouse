@@ -19,6 +19,9 @@
 #include <bluetooth/services/bas.h>
 #include <bluetooth/services/hrs.h>
 
+#include "state.h"
+#include "hids.h"
+
 int mv2_bt_init();
 
 #endif // MOUSEV2_BLUETOOTH_H

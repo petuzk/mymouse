@@ -11,6 +11,7 @@
 #include <drivers/gpio.h>
 
 #include "bluetooth.h"
+#include "hids.h"
 
 // static void user_entry(const struct device *adns7530, void *p2, void *p3)
 // {
@@ -36,6 +37,10 @@ void main(void) {
 		return;
 	}
 
+	if (mv2_hids_init()) {
+		return;
+	}
+
 	int rv;
 	struct sensor_value dx, dy;
 
@@ -52,7 +57,9 @@ void main(void) {
 		bool motion_detected = dx.val1 || dy.val1;
 		gpio_pin_set(gpio, LED_GREEN_PIN, motion_detected);
 
-		k_msleep(100);
+		mv2_hids_send_movement(dx.val1, -dy.val1);
+
+		k_msleep(1);
 	}
 
 	// k_object_access_grant(adns7530, k_current_get());

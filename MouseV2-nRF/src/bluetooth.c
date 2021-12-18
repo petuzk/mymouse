@@ -1,10 +1,5 @@
 #include "bluetooth.h"
 
-/**
- * @brief Currently connected client or NULL
- */
-struct bt_conn *current_client;
-
 static struct k_work adv_work;
 static const struct bt_data adv_data[] = {
 	BT_DATA_BYTES(BT_DATA_GAP_APPEARANCE,
@@ -115,7 +110,7 @@ static void mv2_bt_connected_callback(struct bt_conn *conn, uint8_t err) {
 		return;
 	}
 
-	// bt_hids_connected(&hids_obj, conn);
+	mv2_hids_connected(conn);
 }
 
 /**
@@ -129,7 +124,7 @@ static void mv2_bt_connected_callback(struct bt_conn *conn, uint8_t err) {
 static void mv2_bt_disconnected_callback(struct bt_conn *conn, uint8_t reason) {
 	ARG_UNUSED(reason);
 
-	// bt_hids_disconnected(&hids_obj, conn);
+	mv2_hids_disconnected(conn);
 
 	bt_conn_unref(current_client);
 	current_client = NULL;
