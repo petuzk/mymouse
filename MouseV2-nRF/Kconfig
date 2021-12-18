@@ -1,0 +1,18 @@
+source "Kconfig.zephyr"
+
+menu "MouseV2-nRF project settings"
+
+config PRJ_BT_DIRECTED_ADVERTISING
+	bool "Enable directed advertising"
+	default y
+
+config PRJ_BT_FIXED_PASSKEY_VALUE
+    int "Fixed pairing passkey"
+    range 0 999999
+    default 181402
+    depends on BT_FIXED_PASSKEY
+    help
+      The device will pretend to be of DisplayOnly type,
+      and "display" fixed passkey to be entered on a peer.
+
+endmenu

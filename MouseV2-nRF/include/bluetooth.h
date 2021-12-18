@@ -7,6 +7,8 @@
  *   one instance of the Device Information Service [...]
  */
 
+#include <zephyr.h>
+
 #include <settings/settings.h>
 
 #include <bluetooth/bluetooth.h>
