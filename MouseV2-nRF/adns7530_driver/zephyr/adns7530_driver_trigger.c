@@ -39,7 +39,7 @@ int adns7530_init_trigger(const struct device *dev) {
 	const struct adns7530_config *config = dev->config;
 
 	data->dev = dev;
-	data->work.handler = adns7530_work_handler;
+	k_work_init(&data->work, adns7530_work_handler);
 	data->mot_gpio = device_get_binding(config->mot_label);
 	if (data->mot_gpio == NULL) {
 		return -ENXIO;
