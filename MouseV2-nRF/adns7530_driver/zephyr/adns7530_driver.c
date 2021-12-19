@@ -161,7 +161,7 @@ int adns7530_channel_get(const struct device *dev, enum sensor_channel chan, str
 			val->val1 = data->delta_y;
 			break;
 		default:
-			return -EINVAL;
+			return -ENOTSUP;
 	}
 
 	return 0;
