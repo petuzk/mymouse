@@ -14,3 +14,7 @@ CONFIG_ARM_MPU=y
 
 # Enable hardware stack protection
 CONFIG_HW_STACK_PROTECTION=y
+
+# Use reset & NFC pins as regular GPIOs
+CONFIG_NFCT_PINS_AS_GPIOS=y
+CONFIG_GPIO_AS_PINRESET=n

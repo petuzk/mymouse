@@ -9,10 +9,4 @@ config BOARD
 config BT_CTLR
    default BT
 
-# Use NFC & reset pins as regular GPIOs
-config NFCT_PINS_AS_GPIOS
-   default y
-config GPIO_AS_PINRESET
-   default n
-
 endif
