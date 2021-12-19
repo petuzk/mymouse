@@ -79,7 +79,7 @@
 		label = "VDD switch";
 		regulator-name = "vdd-switch";
 		enable-gpios = <&gpio0 22 GPIO_ACTIVE_LOW>;
-		startup-delay-us = <1000>;
+		startup-delay-us = <100>;
 		regulator-boot-on;
 	};
 };
