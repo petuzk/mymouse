@@ -52,6 +52,15 @@ void main(void) {
 		}
 	}
 
+#ifdef CONFIG_PRJ_FLASH_ON_BOOT
+	for (int i = 0; i < 3; i++) {
+		gpio_pin_set(gpio, LED_GREEN_PIN, true);
+		k_msleep(200);
+		gpio_pin_set(gpio, LED_GREEN_PIN, false);
+		k_msleep(200);
+	}
+#endif
+
 	if (mv2_bt_init()) {
 		return;
 	}

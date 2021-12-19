@@ -2,6 +2,10 @@ source "Kconfig.zephyr"
 
 menu "MouseV2-nRF project settings"
 
+config PRJ_FLASH_ON_BOOT
+  bool "Flash green led on boot"
+  default n
+
 config PRJ_BT_DIRECTED_ADVERTISING
 	bool "Enable directed advertising"
 	default y
