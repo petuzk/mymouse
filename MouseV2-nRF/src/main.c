@@ -22,15 +22,34 @@
 #error "the code expects there is only one GPIO controller"
 #endif
 
+#define LED_RED_PIN     DT_GPIO_PIN(DT_NODELABEL(led_red), gpios)
+#define LED_RED_FLAGS   DT_GPIO_FLAGS(DT_NODELABEL(led_red), gpios)
 #define LED_GREEN_PIN   DT_GPIO_PIN(DT_NODELABEL(led_green), gpios)
 #define LED_GREEN_FLAGS DT_GPIO_FLAGS(DT_NODELABEL(led_green), gpios)
 
 void main(void) {
+	int rv;
+	struct sensor_value dx, dy;
 	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
 	const struct device *adns7530 = DEVICE_DT_GET_ONE(pixart_adns7530);
 
-	if (!device_is_ready(adns7530)) {
+	rv = gpio_pin_configure(gpio, LED_RED_PIN, GPIO_OUTPUT_INACTIVE | LED_RED_FLAGS);
+	if (rv < 0) {
 		return;
+	}
+
+	rv = gpio_pin_configure(gpio, LED_GREEN_PIN, GPIO_OUTPUT_INACTIVE | LED_GREEN_FLAGS);
+	if (rv < 0) {
+		return;
+	}
+
+	if (!device_is_ready(adns7530)) {
+		bool led_on = true;
+		while (true) {
+			gpio_pin_set(gpio, LED_RED_PIN, led_on);
+			led_on = !led_on;
+			k_msleep(1000);
+		}
 	}
 
 	if (mv2_bt_init()) {
@@ -38,14 +57,6 @@ void main(void) {
 	}
 
 	if (mv2_hids_init()) {
-		return;
-	}
-
-	int rv;
-	struct sensor_value dx, dy;
-
-	rv = gpio_pin_configure(gpio, LED_GREEN_PIN, GPIO_OUTPUT_INACTIVE | LED_GREEN_FLAGS);
-	if (rv < 0) {
 		return;
 	}
 

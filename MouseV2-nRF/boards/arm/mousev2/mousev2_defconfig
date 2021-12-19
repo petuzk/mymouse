@@ -1,9 +1,13 @@
-# Copyright (c) 2021 Nordic Semiconductor ASA
-# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Taras Radchenko
+# SPDX-License-Identifier: MIT
 
 CONFIG_SOC_SERIES_NRF52X=y
 CONFIG_SOC_NRF52832_QFAA=y
 CONFIG_BOARD_MOUSEV2=y
+
+# Enable GPIO-controlled regulator
+CONFIG_GPIO=y
+CONFIG_REGULATOR=y
 
 # Enable MPU
 CONFIG_ARM_MPU=y

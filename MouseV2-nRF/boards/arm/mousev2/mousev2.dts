@@ -25,6 +25,15 @@
 			label = "Red LED";
 		};
 	};
+
+	vdd_pwr: vdd-switch {
+		compatible = "regulator-fixed-sync", "regulator-fixed";
+		label = "VDD switch";
+		regulator-name = "vdd-switch";
+		enable-gpios = <&gpio0 22 GPIO_ACTIVE_LOW>;
+		startup-delay-us = <1000>;
+		regulator-boot-on;
+	};
 };
 
 &gpiote {
@@ -49,6 +58,7 @@
 		mot-gpios = <&gpio0 19 GPIO_ACTIVE_LOW>;
 		spi-max-frequency = <1000000>;
 		label = "ADNS-7530";
+		vin-supply = <&vdd_pwr>;
 	};
 };
 
