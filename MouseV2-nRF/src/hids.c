@@ -43,42 +43,38 @@ int mv2_hids_init() {
 		0x85, 0x01,       /* Report Id 1 */
 		0x09, 0x01,       /* Usage (Pointer) */
 		0xA1, 0x00,       /* Collection (Physical) */
-		0x95, 0x05,       /* Report Count (3) */
-		0x75, 0x01,       /* Report Size (1) */
-		0x05, 0x09,       /* Usage Page (Buttons) */
-		0x19, 0x01,       /* Usage Minimum (01) */
-		0x29, 0x05,       /* Usage Maximum (05) */
-		0x15, 0x00,       /* Logical Minimum (0) */
-		0x25, 0x01,       /* Logical Maximum (1) */
-		0x81, 0x02,       /* Input (Data, Variable, Absolute) */
-		0x95, 0x01,       /* Report Count (1) */
-		0x75, 0x03,       /* Report Size (3) */
-		0x81, 0x01,       /* Input (Constant) for padding */
-		0x75, 0x08,       /* Report Size (8) */
-		0x95, 0x01,       /* Report Count (1) */
-		0x05, 0x01,       /* Usage Page (Generic Desktop) */
-		0x09, 0x38,       /* Usage (Wheel) */
-		0x15, 0x81,       /* Logical Minimum (-127) */
-		0x25, 0x7F,       /* Logical Maximum (127) */
-		0x81, 0x06,       /* Input (Data, Variable, Relative) */
-		0x05, 0x0C,       /* Usage Page (Consumer) */
-		0x0A, 0x38, 0x02, /* Usage (AC Pan) */
-		0x95, 0x01,       /* Report Count (1) */
-		0x81, 0x06,       /* Input (Data,Value,Relative,Bit Field) */
+		0x95, 0x05,           /* Report Count (5) */
+		0x75, 0x01,           /* Report Size (1) */
+		0x05, 0x09,               /* Usage Page (Buttons) */
+		0x19, 0x01,               /* Usage Minimum (01) */
+		0x29, 0x05,               /* Usage Maximum (05) */
+		0x15, 0x00,               /* Logical Minimum (0) */
+		0x25, 0x01,               /* Logical Maximum (1) */
+		0x81, 0x02,               /* Input (Data, Variable, Absolute) */
+		0x95, 0x01,           /* Report Count (1) */
+		0x75, 0x03,           /* Report Size (3) */
+		0x81, 0x01,               /* Input (Constant) for padding */
+		0x75, 0x08,           /* Report Size (8) */
+		0x95, 0x01,           /* Report Count (1) */
+		0x05, 0x01,               /* Usage Page (Generic Desktop) */
+		0x09, 0x38,               /* Usage (Wheel) */
+		0x15, 0x81,               /* Logical Minimum (-127) */
+		0x25, 0x7F,               /* Logical Maximum (127) */
+		0x81, 0x06,               /* Input (Data, Variable, Relative) */
 		0xC0,             /* End Collection (Physical) */
 
 		/* Report ID 2: Mouse motion */
 		0x85, 0x02,       /* Report Id 2 */
 		0x09, 0x01,       /* Usage (Pointer) */
 		0xA1, 0x00,       /* Collection (Physical) */
-		0x75, 0x0C,       /* Report Size (12) */
-		0x95, 0x02,       /* Report Count (2) */
-		0x05, 0x01,       /* Usage Page (Generic Desktop) */
-		0x09, 0x30,       /* Usage (X) */
-		0x09, 0x31,       /* Usage (Y) */
-		0x16, 0x01, 0xF8, /* Logical maximum (2047) */
-		0x26, 0xFF, 0x07, /* Logical minimum (-2047) */
-		0x81, 0x06,       /* Input (Data, Variable, Relative) */
+		0x75, 0x0C,           /* Report Size (12) */
+		0x95, 0x02,           /* Report Count (2) */
+		0x05, 0x01,               /* Usage Page (Generic Desktop) */
+		0x09, 0x30,               /* Usage (X) */
+		0x09, 0x31,               /* Usage (Y) */
+		0x16, 0x01, 0xF8,         /* Logical maximum (2047) */
+		0x26, 0xFF, 0x07,         /* Logical minimum (-2047) */
+		0x81, 0x06,               /* Input (Data, Variable, Relative) */
 		0xC0,             /* End Collection (Physical) */
 		0xC0,             /* End Collection (Application) */
 
@@ -184,6 +180,25 @@ int mv2_hids_send_movement(int16_t delta_x, int16_t delta_y) {
 			sizeof(buffer),
 			NULL);
 	}
+}
+
+int mv2_hids_send_buttons_wheel(bool left, bool mid, bool right, int8_t wheel) {
+	uint8_t buffer[INPUT_REP_BUTTONS_LEN];
+	union {
+		int8_t i;
+		uint8_t u;
+	} wheel_union = { .i = wheel };
+
+	buffer[0] = (left << 0) | (mid << 1) | (right << 2);
+	buffer[1] = wheel_union.u;
+
+	return bt_hids_inp_rep_send(
+		&hids_obj,
+		current_client,
+		INPUT_REP_BUTTONS_IDX,
+		buffer,
+		sizeof(buffer),
+		NULL);
 }
 
 int mv2_hids_connected(struct bt_conn *conn) {

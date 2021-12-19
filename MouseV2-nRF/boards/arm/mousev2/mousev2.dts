@@ -26,6 +26,54 @@
 		};
 	};
 
+	buttons {
+		compatible = "gpio-keys";
+
+		/* Main buttons */
+		button_l: button_l {
+			gpios = <&gpio0 30 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Left button";
+		};
+		button_r: button_r {
+			gpios = <&gpio0 29 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Right button";
+		};
+		button_m: button_m {
+			gpios = <&gpio0 31 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Middle button";
+		};
+		button_spec: button_spec {
+			gpios = <&gpio0 28 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Special button";
+		};
+		button_mode: button_mode {
+			gpios = <&gpio0 21 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Mode button";
+		};
+
+		/* Thumb buttons */
+		button_center: button_center {
+			gpios = <&gpio0 26 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Center button";
+		};
+		button_up: button_up {
+			gpios = <&gpio0 25 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Up button";
+		};
+		button_down: button_down {
+			gpios = <&gpio0 23 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Down button";
+		};
+		button_fwd: button_fwd {
+			gpios = <&gpio0 27 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Forward button";
+		};
+		button_bwd: button_bwd {
+			gpios = <&gpio0 24 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Backward button";
+		};
+	};
+
 	vdd_pwr: vdd-switch {
 		compatible = "regulator-fixed-sync", "regulator-fixed";
 		label = "VDD switch";

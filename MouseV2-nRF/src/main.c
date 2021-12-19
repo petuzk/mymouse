@@ -27,6 +27,9 @@
 #define LED_GREEN_PIN   DT_GPIO_PIN(DT_NODELABEL(led_green), gpios)
 #define LED_GREEN_FLAGS DT_GPIO_FLAGS(DT_NODELABEL(led_green), gpios)
 
+#define B_LEFT_PIN      DT_GPIO_PIN(DT_NODELABEL(button_l), gpios)
+#define B_LEFT_FLAGS    DT_GPIO_FLAGS(DT_NODELABEL(button_l), gpios)
+
 void main(void) {
 	int rv;
 	struct sensor_value dx, dy;
@@ -39,6 +42,11 @@ void main(void) {
 	}
 
 	rv = gpio_pin_configure(gpio, LED_GREEN_PIN, GPIO_OUTPUT_INACTIVE | LED_GREEN_FLAGS);
+	if (rv < 0) {
+		return;
+	}
+
+	rv = gpio_pin_configure(gpio, B_LEFT_PIN, GPIO_INPUT | B_LEFT_FLAGS);
 	if (rv < 0) {
 		return;
 	}
@@ -77,7 +85,13 @@ void main(void) {
 		bool motion_detected = dx.val1 || dy.val1;
 		gpio_pin_set(gpio, LED_GREEN_PIN, motion_detected);
 
+		rv = gpio_pin_get(gpio, B_LEFT_PIN);
+		if (rv < 0) {
+			return;
+		}
+
 		mv2_hids_send_movement(dx.val1, -dy.val1);
+		mv2_hids_send_buttons_wheel(rv, false, false, 0);
 
 		k_msleep(1);
 	}
