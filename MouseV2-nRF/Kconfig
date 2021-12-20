@@ -2,6 +2,10 @@ source "Kconfig.zephyr"
 
 menu "MouseV2-nRF project settings"
 
+config PRJ_POWEROFF_HOLD_TIME
+  int "Turn off hold time (ms)"
+  default 1000
+
 config PRJ_FLASH_ON_BOOT
   bool "Flash green led on boot"
   default n
