@@ -13,11 +13,6 @@
 #include "bluetooth.h"
 #include "hids.h"
 
-// static void user_entry(const struct device *adns7530, void *p2, void *p3)
-// {
-// 	// hello_world_print(dev);
-// }
-
 #if DT_NUM_INST_STATUS_OKAY(nordic_nrf_gpio) != 1
 #error "the code expects there is only one GPIO controller"
 #endif
@@ -139,7 +134,4 @@ void main(void) {
 		rot_acc = rot_acc % 2;
 		k_msleep(1);
 	}
-
-	// k_object_access_grant(adns7530, k_current_get());
-	// k_thread_user_mode_enter(user_entry, adns7530, NULL, NULL);
 }
