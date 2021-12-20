@@ -92,6 +92,15 @@
 	status = "okay";
 };
 
+&qdec {
+	status = "okay";
+	a-pin = <14>;
+	b-pin = <12>;
+	// value from sensor is returned in degrees, so make one step equal to one degree to get actual steps
+	steps = <360>;
+	led-pre = <0>;
+};
+
 &spi0 {
 	status = "okay";
 	compatible = "nordic,nrf-spi";
