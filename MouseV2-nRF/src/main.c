@@ -11,7 +11,6 @@
 static inline int client_update_cycle() {
 	// custom accumulator to divide by 2 (a single click makes two transitions) and not loose remainders
 	static int rot_acc = 0;
-	bool motion_detected;
 	int left, right, middle;
 	struct sensor_value dx, dy, rot;
 	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
@@ -35,9 +34,6 @@ static inline int client_update_cycle() {
 	}
 
 	/* Write */
-	motion_detected = dx.val1 || dy.val1;
-	gpio_pin_set(gpio, LED_GREEN_PIN, motion_detected);
-
 	mv2_hids_send_movement(dx.val1, -dy.val1);
 	mv2_hids_send_buttons_wheel(left, right, middle, rot_acc / 2);
 
