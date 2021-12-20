@@ -27,11 +27,15 @@
 #define LED_GREEN_PIN   DT_GPIO_PIN(DT_NODELABEL(led_green), gpios)
 #define LED_GREEN_FLAGS DT_GPIO_FLAGS(DT_NODELABEL(led_green), gpios)
 
-#define B_LEFT_PIN      DT_GPIO_PIN(DT_NODELABEL(button_l), gpios)
-#define B_LEFT_FLAGS    DT_GPIO_FLAGS(DT_NODELABEL(button_l), gpios)
+#define BUTTON_L_PIN      DT_GPIO_PIN(DT_NODELABEL(button_l), gpios)
+#define BUTTON_L_FLAGS    DT_GPIO_FLAGS(DT_NODELABEL(button_l), gpios)
+#define BUTTON_R_PIN      DT_GPIO_PIN(DT_NODELABEL(button_r), gpios)
+#define BUTTON_R_FLAGS    DT_GPIO_FLAGS(DT_NODELABEL(button_r), gpios)
+#define BUTTON_M_PIN      DT_GPIO_PIN(DT_NODELABEL(button_m), gpios)
+#define BUTTON_M_FLAGS    DT_GPIO_FLAGS(DT_NODELABEL(button_m), gpios)
 
 void main(void) {
-	int rv;
+	int rv, left, right, middle;
 	struct sensor_value dx, dy;
 	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
 	const struct device *adns7530 = DEVICE_DT_GET_ONE(pixart_adns7530);
@@ -46,7 +50,17 @@ void main(void) {
 		return;
 	}
 
-	rv = gpio_pin_configure(gpio, B_LEFT_PIN, GPIO_INPUT | B_LEFT_FLAGS);
+	rv = gpio_pin_configure(gpio, BUTTON_L_PIN, GPIO_INPUT | BUTTON_L_FLAGS);
+	if (rv < 0) {
+		return;
+	}
+
+	rv = gpio_pin_configure(gpio, BUTTON_R_PIN, GPIO_INPUT | BUTTON_R_FLAGS);
+	if (rv < 0) {
+		return;
+	}
+
+	rv = gpio_pin_configure(gpio, BUTTON_M_PIN, GPIO_INPUT | BUTTON_M_FLAGS);
 	if (rv < 0) {
 		return;
 	}
@@ -85,13 +99,15 @@ void main(void) {
 		bool motion_detected = dx.val1 || dy.val1;
 		gpio_pin_set(gpio, LED_GREEN_PIN, motion_detected);
 
-		rv = gpio_pin_get(gpio, B_LEFT_PIN);
-		if (rv < 0) {
+		left = gpio_pin_get(gpio, BUTTON_L_PIN);
+		right = gpio_pin_get(gpio, BUTTON_R_PIN);
+		middle = gpio_pin_get(gpio, BUTTON_M_PIN);
+		if (left < 0 || right < 0 || middle < 0) {
 			return;
 		}
 
 		mv2_hids_send_movement(dx.val1, -dy.val1);
-		mv2_hids_send_buttons_wheel(rv, false, false, 0);
+		mv2_hids_send_buttons_wheel(left, right, middle, 0);
 
 		k_msleep(1);
 	}

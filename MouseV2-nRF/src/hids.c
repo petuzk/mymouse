@@ -182,14 +182,14 @@ int mv2_hids_send_movement(int16_t delta_x, int16_t delta_y) {
 	}
 }
 
-int mv2_hids_send_buttons_wheel(bool left, bool mid, bool right, int8_t wheel) {
+int mv2_hids_send_buttons_wheel(bool left, bool right, bool middle, int8_t wheel) {
 	uint8_t buffer[INPUT_REP_BUTTONS_LEN];
 	union {
 		int8_t i;
 		uint8_t u;
 	} wheel_union = { .i = wheel };
 
-	buffer[0] = (left << 0) | (mid << 1) | (right << 2);
+	buffer[0] = (left << 0) | (right << 1) | (middle << 2);
 	buffer[1] = wheel_union.u;
 
 	return bt_hids_inp_rep_send(
