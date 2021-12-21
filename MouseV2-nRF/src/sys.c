@@ -85,7 +85,7 @@ static bool mv2_sys_ready() {
  * @return true if system should continue running
  * @return false if button was released too early
  */
-static bool mv2_sys_can_continue() {
+static bool mv2_sys_can_continue(struct mv2_sys_boot_opt *boot_opt) {
 	int rv;
 	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
 
@@ -94,6 +94,17 @@ static bool mv2_sys_can_continue() {
 		if (rv != 1) {
 			return false;
 		}
+
+#ifdef CONFIG_PRJ_BT_DIRECTED_ADVERTISING
+		if (boot_opt->public_adv) {
+			// check if PUBLIC_ADV_REQ_PIN is still active
+			rv = gpio_pin_get(gpio, PUBLIC_ADV_REQ_PIN);
+			if (rv < 0) {
+				return false;
+			}
+			boot_opt->public_adv = rv;
+		}
+#endif
 
 		k_msleep(1);
 	}
@@ -176,7 +187,7 @@ static int mv2_sys_poweroff() {
  *
  * @return 0 on success, negative error code on fatal error.
  */
-int mv2_sys_init() {
+int mv2_sys_init(struct mv2_sys_boot_opt *boot_opt) {
 	int rv;
 
 	mv2_sys_start_power_switch_timer();
@@ -192,7 +203,12 @@ int mv2_sys_init() {
 		return mv2_sys_poweroff();
 	}
 
-	if (!mv2_sys_can_continue()) {
+	// initialize boot options
+#ifdef CONFIG_PRJ_BT_DIRECTED_ADVERTISING
+	boot_opt->public_adv = true;
+#endif
+
+	if (!mv2_sys_can_continue(boot_opt)) {
 		return mv2_sys_poweroff();
 	}
 

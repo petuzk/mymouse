@@ -46,7 +46,17 @@
 #define QDEC_A_FLAGS         GPIO_PULL_UP  // idk how to add
 #define QDEC_B_FLAGS         GPIO_PULL_UP  // these flags to devicetree
 
-int mv2_sys_init();
+#ifdef CONFIG_PRJ_BT_DIRECTED_ADVERTISING
+#define PUBLIC_ADV_REQ_PIN   BUTTON_SPEC_PIN
+#endif
+
+struct mv2_sys_boot_opt {
+#ifdef CONFIG_PRJ_BT_DIRECTED_ADVERTISING
+    bool public_adv;
+#endif
+};
+
+int mv2_sys_init(struct mv2_sys_boot_opt *boot_opt);
 bool mv2_sys_should_run();
 void mv2_sys_start_poweroff_countdown();
 void mv2_sys_cancel_poweroff_countdown();

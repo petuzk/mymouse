@@ -43,19 +43,19 @@ static inline int client_update_cycle() {
 }
 
 void main(void) {
-	int rv, prev_btnmode_status;
+	int rv, prev_btnmode_status = 1;
+	struct mv2_sys_boot_opt boot_opt;
 	struct k_timer bat_measurement_timer;
 	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
 
-	if (mv2_sys_init()) return;
+	if (mv2_sys_init(&boot_opt)) return;
 	if (mv2_bat_init()) return;
 
-	prev_btnmode_status = gpio_pin_get(gpio, BUTTON_MODE_PIN);
-	if (prev_btnmode_status < 0) {
-		return;
-	}
-
-	if (mv2_bt_init(PUBLIC_ADV_FALSE)) return;
+	if (mv2_bt_init(
+#ifdef CONFIG_PRJ_BT_DIRECTED_ADVERTISING
+		boot_opt.public_adv
+#endif
+	)) return;
 	if (mv2_hids_init()) return;
 
 	k_timer_init(&bat_measurement_timer, NULL, NULL);
