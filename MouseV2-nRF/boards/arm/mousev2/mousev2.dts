@@ -74,6 +74,13 @@
 		};
 	};
 
+	vbatt {
+		compatible = "voltage-divider";
+		io-channels = <&adc 0>;
+		output-ohms = <2000000>;
+		full-ohms = <3000000>;
+	};
+
 	vdd_pwr: vdd-switch {
 		compatible = "regulator-fixed-sync", "regulator-fixed";
 		label = "VDD switch";
@@ -89,6 +96,10 @@
 };
 
 &gpio0 {
+	status = "okay";
+};
+
+&adc {
 	status = "okay";
 };
 

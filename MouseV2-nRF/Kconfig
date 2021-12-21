@@ -9,6 +9,10 @@ config PRJ_POWER_ONOFF_HOLD_TIME
     A number of milliseconds the mode button has to be held
     to power the device on or off.
 
+config PRJ_BAT_MEASUREMENT_PERIOD
+  int "Battery measurement & reporting periodicity (ms)"
+  default 30000
+
 config PRJ_FLASH_ON_BOOT
   bool "Flash green led on boot"
   default n

@@ -6,6 +6,7 @@
 
 #include "sys.h"
 #include "bluetooth.h"
+#include "battery.h"
 #include "hids.h"
 
 static inline int client_update_cycle() {
@@ -43,9 +44,11 @@ static inline int client_update_cycle() {
 
 void main(void) {
 	int rv, prev_btnmode_status;
+	struct k_timer bat_measurement_timer;
 	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
 
 	if (mv2_sys_init()) return;
+	if (mv2_bat_init()) return;
 
 	prev_btnmode_status = gpio_pin_get(gpio, BUTTON_MODE_PIN);
 	if (prev_btnmode_status < 0) {
@@ -54,6 +57,9 @@ void main(void) {
 
 	if (mv2_bt_init()) return;
 	if (mv2_hids_init()) return;
+
+	k_timer_init(&bat_measurement_timer, NULL, NULL);
+	k_timer_start(&bat_measurement_timer, K_NO_WAIT, K_MSEC(CONFIG_PRJ_BAT_MEASUREMENT_PERIOD));
 
 	while (mv2_sys_should_run()) {
 		rv = gpio_pin_get(gpio, BUTTON_MODE_PIN);
@@ -74,6 +80,16 @@ void main(void) {
 			if (client_update_cycle()) {
 				return;
 			}
+		}
+
+		if (k_timer_status_get(&bat_measurement_timer)) {
+			millivolts_t mv;
+			rv = mv2_bat_sample_mv(&mv);
+			if (rv) {
+				return;
+			}
+
+			bt_bas_set_battery_level((mv2_bat_convert_mv2pts(mv) + 50) / 100);
 		}
 
 		k_msleep(1);
