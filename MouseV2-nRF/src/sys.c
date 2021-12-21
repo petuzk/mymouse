@@ -143,7 +143,10 @@ static void mv2_sys_indicate_boot_finished() {
 #endif
 
 /**
- * @brief Wait until the mode button is released, disable the outputs and enter poweroff state.
+ * @brief Enter poweroff state.
+ *
+ * Before powering off this function will wait until the mode button is released,
+ * disable the GPIO outputs and unmount the filesystem.
  *
  * @return Only returns a negative error code if something really bad happened.
  */
@@ -170,6 +173,9 @@ static int mv2_sys_poweroff() {
 	// disable outputs
 	gpio_pin_set(gpio, LED_RED_PIN, false);
 	gpio_pin_set(gpio, LED_GREEN_PIN, false);
+
+	// dirty way to unmount the filesystem before poweroff
+	mv2_fs_deinit();
 
 	// power off
 	pm_power_state_set((struct pm_state_info){PM_STATE_SOFT_OFF});

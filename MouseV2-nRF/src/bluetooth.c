@@ -166,6 +166,7 @@ static struct bt_conn_cb conn_callbacks = {
  * @return 0 on success, negative error code otherwise.
  */
 int mv2_bt_init(PUBLIC_ADV_PARAM) {
+	int rv;
 	bt_conn_cb_register(&conn_callbacks);
 
 #ifdef CONFIG_BT_FIXED_PASSKEY
@@ -176,12 +177,15 @@ int mv2_bt_init(PUBLIC_ADV_PARAM) {
 	// ... or is it needed to confirm pairing?
 	// bt_conn_auth_cb_register(&conn_auth_callbacks);
 
-	int rv = bt_enable(NULL);
+	rv = bt_enable(NULL);
 	if (rv) {
 		return rv;
 	}
 
-	settings_load();
+	rv = settings_load();
+	if (rv) {
+		return rv;
+	}
 
 	// k_work_init(&hids_work, mouse_handler);
 	// k_work_init(&pairing_work, pairing_process);

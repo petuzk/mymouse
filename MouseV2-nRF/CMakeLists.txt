@@ -20,4 +20,5 @@ target_sources(app PRIVATE
   src/bluetooth.c
   src/hids.c
   src/battery.c
+  src/fs.c
   )

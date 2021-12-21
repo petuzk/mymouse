@@ -9,6 +9,9 @@
 #include <hal/nrf_gpio.h>
 #include <pm/pm.h>
 
+// needed to dirtily unmount the filesystem before poweroff
+#include "fs.h"
+
 #if DT_NUM_INST_STATUS_OKAY(nordic_nrf_gpio) != 1
 #error "the code expects there is only one GPIO controller"
 #endif

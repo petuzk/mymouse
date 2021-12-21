@@ -8,6 +8,7 @@
 #include "bluetooth.h"
 #include "battery.h"
 #include "hids.h"
+#include "fs.h"
 
 static inline int client_update_cycle() {
 	// custom accumulator to divide by 2 (a single click makes two transitions) and not loose remainders
@@ -50,6 +51,7 @@ void main(void) {
 
 	if (mv2_sys_init(&boot_opt)) return;
 	if (mv2_bat_init()) return;
+	if (mv2_fs_init()) return;
 
 	if (mv2_bt_init(
 #ifdef CONFIG_PRJ_BT_DIRECTED_ADVERTISING
