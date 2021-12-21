@@ -1,7 +1,7 @@
 add_library(lua STATIC)
 
 target_sources(lua
-    PRIVATE
+    PUBLIC
         lapi.c
         lauxlib.c
         lbaselib.c
@@ -15,11 +15,11 @@ target_sources(lua
         lfunc.c
         lgc.c
         linit.c
-        liolib.c
+        # liolib.c  # uses files
         llex.c
         lmathlib.c
         lmem.c
-        loadlib.c
+        # loadlib.c  # provides support for dynamic libraries
         lobject.c
         lopcodes.c
         loslib.c
@@ -30,8 +30,8 @@ target_sources(lua
         ltable.c
         ltablib.c
         ltm.c
-        lua.c
-        luac.c
+        # lua.c  # interpreter (has main)
+        # luac.c  # compiler (has main)
         lundump.c
         lutf8lib.c
         lvm.c

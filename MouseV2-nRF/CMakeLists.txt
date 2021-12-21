@@ -12,6 +12,8 @@ add_subdirectory(lua)
 
 project(mousev2-nrf)
 
+target_link_libraries(app PRIVATE lua)
+
 target_include_directories(app PRIVATE include)
 
 target_sources(app PRIVATE
