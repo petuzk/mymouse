@@ -34,6 +34,20 @@ static int mv2_sys_init_gpio() {
 	rv = gpio_pin_configure(gpio, BUTTON_MODE_PIN, GPIO_INPUT | BUTTON_MODE_FLAGS);
 	if (rv < 0) return rv;
 
+	/* Programmable buttons */
+	rv = gpio_pin_configure(gpio, BUTTON_SPEC_PIN, GPIO_INPUT | BUTTON_SPEC_FLAGS);
+	if (rv < 0) return rv;
+	rv = gpio_pin_configure(gpio, BUTTON_CENTER_PIN, GPIO_INPUT | BUTTON_CENTER_FLAGS);
+	if (rv < 0) return rv;
+	rv = gpio_pin_configure(gpio, BUTTON_UP_PIN, GPIO_INPUT | BUTTON_UP_FLAGS);
+	if (rv < 0) return rv;
+	rv = gpio_pin_configure(gpio, BUTTON_DOWN_PIN, GPIO_INPUT | BUTTON_DOWN_FLAGS);
+	if (rv < 0) return rv;
+	rv = gpio_pin_configure(gpio, BUTTON_FWD_PIN, GPIO_INPUT | BUTTON_FWD_FLAGS);
+	if (rv < 0) return rv;
+	rv = gpio_pin_configure(gpio, BUTTON_BWD_PIN, GPIO_INPUT | BUTTON_BWD_FLAGS);
+	if (rv < 0) return rv;
+
     /* Encoder (QDEC) */
 	rv = gpio_pin_configure(gpio, QDEC_A_PIN, QDEC_A_FLAGS);
 	if (rv < 0) return rv;
