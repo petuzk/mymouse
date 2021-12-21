@@ -22,6 +22,18 @@
 #include "state.h"
 #include "hids.h"
 
-int mv2_bt_init();
+#if CONFIG_PRJ_BT_DIRECTED_ADVERTISING
+#define PUBLIC_ADV_PARAM  bool public_adv
+#define PUBLIC_ADV_ARG    public_adv
+#define PUBLIC_ADV_TRUE   true
+#define PUBLIC_ADV_FALSE  false
+#else
+#define PUBLIC_ADV_PARAM
+#define PUBLIC_ADV_ARG
+#define PUBLIC_ADV_TRUE
+#define PUBLIC_ADV_FALSE
+#endif
+
+int mv2_bt_init(PUBLIC_ADV_PARAM);
 
 #endif // MOUSEV2_BLUETOOTH_H

@@ -37,12 +37,18 @@ static void mv2_bt_advertising_process(struct k_work *work) {
 #if CONFIG_PRJ_BT_DIRECTED_ADVERTISING
 	bt_addr_le_t addr;
 
-	if (!k_msgq_get(&bonds_queue, &addr, K_NO_WAIT)) {
-		adv_param = *BT_LE_ADV_CONN_DIR(&addr);
-		adv_param.options |= BT_LE_ADV_OPT_DIR_ADDR_RPA;
+	if (k_msgq_get(&bonds_queue, &addr, K_NO_WAIT)) {
+		// the queue is empty
+		// no fallback to public advertising unless explicitly required
+		return;
+	}
 
+	if (bt_addr_le_cmp(&addr, BT_ADDR_LE_ANY)) {
+		// not a BT_ADDR_LE_ANY, start directed advertising
+		adv_param = *BT_LE_ADV_CONN_DIR(&addr);
 		bt_le_adv_start(&adv_param, NULL, 0, NULL, 0);
-	} else
+	}
+	else
 #endif
 	{
 		adv_param = *BT_LE_ADV_CONN;
@@ -70,7 +76,7 @@ static void mv2_bt_put_bond_to_queue(const struct bt_bond_info *info, void *user
 	// 	}
 	// }
 
-	k_msgq_put(&bonds_queue, (void *) &info->addr, K_NO_WAIT);
+	k_msgq_put(&bonds_queue, &info->addr, K_NO_WAIT);
 }
 #endif
 
@@ -79,10 +85,15 @@ static void mv2_bt_put_bond_to_queue(const struct bt_bond_info *info, void *user
  *
  * If direct advertising is enabled, this function firstly initializes DAAQ with known bonds.
  */
-static void mv2_bt_advertising_start() {
+static void mv2_bt_advertising_start(PUBLIC_ADV_PARAM) {
 #if CONFIG_PRJ_BT_DIRECTED_ADVERTISING
 	k_msgq_purge(&bonds_queue);
-	bt_foreach_bond(BT_ID_DEFAULT, mv2_bt_put_bond_to_queue, NULL);
+	if (PUBLIC_ADV_ARG) {
+		// request undirected advertising, i.e. visible to public
+		k_msgq_put(&bonds_queue, BT_ADDR_LE_ANY, K_NO_WAIT);
+	} else {
+		bt_foreach_bond(BT_ID_DEFAULT, mv2_bt_put_bond_to_queue, NULL);
+	}
 #endif
 
 	k_work_submit(&adv_work);
@@ -129,7 +140,8 @@ static void mv2_bt_disconnected_callback(struct bt_conn *conn, uint8_t reason) {
 	bt_conn_unref(current_client);
 	current_client = NULL;
 
-	mv2_bt_advertising_start();
+	// public advertising can only be started by user
+	mv2_bt_advertising_start(PUBLIC_ADV_FALSE);
 }
 
 /**
@@ -153,7 +165,7 @@ static struct bt_conn_cb conn_callbacks = {
  *
  * @return 0 on success, negative error code otherwise.
  */
-int mv2_bt_init() {
+int mv2_bt_init(PUBLIC_ADV_PARAM) {
 	bt_conn_cb_register(&conn_callbacks);
 
 #ifdef CONFIG_BT_FIXED_PASSKEY
@@ -175,7 +187,7 @@ int mv2_bt_init() {
 	// k_work_init(&pairing_work, pairing_process);
 	k_work_init(&adv_work, mv2_bt_advertising_process);
 
-	mv2_bt_advertising_start();
+	mv2_bt_advertising_start(PUBLIC_ADV_ARG);
 
 	return 0;
 }

@@ -55,7 +55,7 @@ void main(void) {
 		return;
 	}
 
-	if (mv2_bt_init()) return;
+	if (mv2_bt_init(PUBLIC_ADV_FALSE)) return;
 	if (mv2_hids_init()) return;
 
 	k_timer_init(&bat_measurement_timer, NULL, NULL);
