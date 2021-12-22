@@ -77,7 +77,7 @@ typedef struct lua_State lua_State;
 
 
 /* minimum Lua stack available to a C function */
-#define LUA_MINSTACK	20
+#define LUA_MINSTACK	8
 
 
 /* predefined values in the registry */

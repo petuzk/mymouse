@@ -186,7 +186,7 @@ typedef l_uint32 Instruction;
 ** #("function") = 8, #("__newindex") = 10.)
 */
 #if !defined(LUAI_MAXSHORTLEN)
-#define LUAI_MAXSHORTLEN	40
+#define LUAI_MAXSHORTLEN	20
 #endif
 
 
@@ -197,7 +197,7 @@ typedef l_uint32 Instruction;
 ** a few dozens more.
 */
 #if !defined(MINSTRTABSIZE)
-#define MINSTRTABSIZE	128
+#define MINSTRTABSIZE	64
 #endif
 
 
@@ -225,7 +225,7 @@ typedef l_uint32 Instruction;
 ** the size of the C stack.)
 */
 #if !defined(LUAI_MAXCCALLS)
-#define LUAI_MAXCCALLS		200
+#define LUAI_MAXCCALLS		100
 #endif
 
 
