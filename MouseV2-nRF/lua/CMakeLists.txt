@@ -3,6 +3,7 @@ add_library(lua STATIC)
 target_link_libraries(lua
     PRIVATE
         zephyr      # filesystem, hardware random number generator
+        umm_malloc  # better memory allocation algorithm
 )
 
 target_sources(lua

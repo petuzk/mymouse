@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include <fs/fs.h>
+#include <umm_malloc.h>
 
 /*
 ** This file uses only the official API of Lua.
@@ -1013,11 +1014,11 @@ LUALIB_API const char *luaL_gsub (lua_State *L, const char *s,
 static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
   (void)ud; (void)osize;  /* not used */
   if (nsize == 0) {
-    free(ptr);
+    umm_free(ptr);
     return NULL;
   }
   else
-    return realloc(ptr, nsize);
+    return umm_realloc(ptr, nsize);
 }
 
 
