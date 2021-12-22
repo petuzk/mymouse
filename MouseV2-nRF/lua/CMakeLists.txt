@@ -1,5 +1,10 @@
 add_library(lua STATIC)
 
+target_link_libraries(lua
+    PRIVATE
+        zephyr      # filesystem, hardware random number generator
+)
+
 target_sources(lua
     PUBLIC
         lapi.c
@@ -37,3 +42,5 @@ target_sources(lua
         lvm.c
         lzio.c
 )
+
+target_include_directories(app PUBLIC .)
