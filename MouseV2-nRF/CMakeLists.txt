@@ -13,7 +13,7 @@ add_subdirectory(lua)
 
 project(mousev2-nrf)
 
-target_link_libraries(app PRIVATE lua)
+target_link_libraries(app PRIVATE lua umm_malloc)
 
 target_include_directories(app PRIVATE include)
 
@@ -25,4 +25,5 @@ target_sources(app PRIVATE
     src/hids.c
     src/battery.c
     src/fs.c
+    src/lua_worker.c
 )

@@ -7,7 +7,7 @@ int mv2_fs_init() {
 	// nothing really to do, but we're creating an example file if it does not exist
 	int rv;
 	struct fs_dirent dirent;
-	static const char *fname = MV2FS_MOUNTPOINT "/boot.lua";
+	static const char *fname = MV2FS_MOUNTPOINT "/" CONFIG_PRJ_LUA_SCRIPT_NAME;
 
 	rv = fs_stat(fname, &dirent);
 	if (rv == -ENOENT) {
