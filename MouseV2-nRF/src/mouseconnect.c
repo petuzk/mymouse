@@ -175,6 +175,12 @@ static int mv2_mc_start_recv_file(const uint8_t *data, uint16_t len) {
 		return rv;
 	}
 
+	rv = fs_truncate(file, 0);
+	if (rv < 0) {
+		mv2_mc_state.active_command = NONE;
+		return rv;
+	}
+
 	rv = fs_write(file, data, len);
 	if (rv < 0) {
 		return rv;
