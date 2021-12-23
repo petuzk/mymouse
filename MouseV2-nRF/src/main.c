@@ -9,6 +9,7 @@
 #include "battery.h"
 #include "hids.h"
 #include "fs.h"
+#include "lua_worker.h"
 
 static inline int client_update_cycle() {
 	// custom accumulator to divide by 2 (a single click makes two transitions) and not loose remainders
@@ -40,6 +41,22 @@ static inline int client_update_cycle() {
 	mv2_hids_send_buttons_wheel(left, right, middle, rot_acc / 2);
 
 	rot_acc = rot_acc % 2;
+	return 0;
+}
+
+static inline int send_events_to_lua() {
+	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
+
+	for (uint8_t i = 0; i < MV2_LW_NUM_PROG_BUTTONS; i++) {
+		int rv = gpio_pin_get(gpio, prog_btn_pins[i]);
+		if (rv < 0) {
+			return rv;
+		}
+		else if (rv != (prog_btn_counters[i] & 1)) {
+			prog_btn_counters[i]++;
+		}
+	}
+
 	return 0;
 }
 
@@ -82,7 +99,7 @@ void main(void) {
 		}
 
 		if (current_client || IS_ENABLED(CONFIG_DEBUG)) {
-			if (client_update_cycle()) {
+			if (client_update_cycle() || send_events_to_lua()) {
 				return;
 			}
 		}
