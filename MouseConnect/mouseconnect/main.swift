@@ -77,24 +77,23 @@ struct Command {
             data[1] = Character("d").asciiValue!
             comm.push(data)
             
-            let header = comm.pull()
-            print(header)
-            
-            guard let header = header else {
-                return
+            guard let header = comm.pull() else {
+                print("error: nil received for header")
+                Foundation.exit(1)
             }
             
-            print(header.count, header[0], header[1], header[2], header[3], header[4], header[5])
+            if (header.count < 6 || header[0] != Character("w").asciiValue! || header[1] != Character("r").asciiValue!) {
+                print("error: bad header")
+                Foundation.exit(1)
+            }
             
             let size = UInt32(header[2]) + UInt32(header[3]) << 8 + UInt32(header[4]) << 16 + UInt32(header[5]) << 24
-            print("size: \(size)")
-            
             var contents = Data(capacity: Int(size))
             contents.append(header.advanced(by: 6))
         
             while (contents.count < size) {
                 guard let newdata = comm.pull() else {
-                    print("data transmission error")
+                    print("error: nil received for data")
                     Foundation.exit(1)
                 }
                 contents.append(newdata)
@@ -126,12 +125,18 @@ struct Command {
             let comm = MouseCommunicator()
             comm.waitForConnection()
             
-//            let size = FileManager.default.attributesOfItem(atPath: local_filename).fileSize()
+            guard let size = try? FileManager.default.attributesOfItem(atPath: local_filename)[.size] else {
+                print("error: can't retrieve source file size")
+                Foundation.exit(1)
+            }
             
             var data = Data(count: 6)
-            data[0] = 119  // 'w'
-            data[1] = 114  // 'r'
-            // size is not used yet
+            data[0] = Character("w").asciiValue!
+            data[1] = Character("r").asciiValue!
+            data[2] = UInt8(((size as! UInt64) >>  0) & 0xFF)
+            data[3] = UInt8(((size as! UInt64) >>  8) & 0xFF)
+            data[4] = UInt8(((size as! UInt64) >> 16) & 0xFF)
+            data[5] = UInt8(((size as! UInt64) >> 24) & 0xFF)
             
             data.append(FileManager.default.contents(atPath: local_filename)!)
             comm.push(data)
@@ -267,31 +272,39 @@ class MouseCommunicator: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
             return
         }
 
+        // todo: mtu=62 should not be hardcoded
+        let mtu = min(nus_peripheral.maximumWriteValueLength(for: .withResponse), 62)
+        if data.count > mtu {
+            for i in stride(from: 0, to: data.count, by: mtu) {
+                push(data.subdata(in: i..<min(i+mtu, data.count)))
+            }
+            return
+        }
+
         nus_peripheral.writeValue(data, for: nus_tx_char, type: .withResponse)
         while (!tx) { }
         tx = false
     }
     
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
-        print("[callback] write, error: \(error)")
+        print("[callback] write, error: \(String(describing: error))")
         tx = true
     }
     
     // MARK: Data reading
     
     func pull() -> Data? {
-        guard let nus_peripheral = nus_peripheral, let nus_rx_char = nus_rx_char else {
+        guard let nus_rx_char = nus_rx_char else {
             return nil
         }
 
-//        nus_peripheral.readValue(for: nus_rx_char)
         while (!rx) { }
         rx = false
         return nus_rx_char.value
     }
         
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        print("[callback] read, error: \(error)")
+        print("[callback] read, error: \(String(describing: error))")
         rx = error == nil
     }
 }
