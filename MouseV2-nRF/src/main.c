@@ -53,11 +53,14 @@ void main(void) {
 	if (mv2_bat_init()) return;
 	if (mv2_fs_init()) return;
 
+#ifndef CONFIG_DEBUG
 	if (mv2_bt_init(
 #ifdef CONFIG_PRJ_BT_DIRECTED_ADVERTISING
 		boot_opt.public_adv
-#endif
+#endif // CONFIG_PRJ_BT_DIRECTED_ADVERTISING
 	)) return;
+#endif // CONFIG_DEBUG
+
 	if (mv2_hids_init()) return;
 
 	k_timer_init(&bat_measurement_timer, NULL, NULL);
@@ -78,7 +81,7 @@ void main(void) {
 			}
 		}
 
-		if (current_client) {
+		if (current_client || IS_ENABLED(CONFIG_DEBUG)) {
 			if (client_update_cycle()) {
 				return;
 			}
