@@ -14,6 +14,7 @@ struct Command {
             .init(
                 commandName: "mouseconnect",
                 abstract: "A utility to sync file with the mouse",
+                version: "0.1",
                 subcommands: [Command.Pull.self, Command.Push.self, Command.MTU.self]
             )
         }
@@ -23,7 +24,7 @@ struct Command {
         static var configuration: CommandConfiguration {
             .init(
                 commandName: "mtu",
-                abstract: "Get peripheral's NSU maximum transmission unit"
+                abstract: "Get peripheral's maximum transmission unit"
             )
         }
         
