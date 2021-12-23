@@ -12,6 +12,10 @@ static const struct bt_data adv_data[] = {
 		BT_UUID_16_ENCODE(BT_UUID_BAS_VAL)),
 };
 
+static const struct bt_data scan_data[] = {
+	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_NUS_VAL),
+};
+
 #if CONFIG_PRJ_BT_DIRECTED_ADVERTISING
 /**
  * @brief Direct advertising addresses queue (DAAQ).
@@ -53,7 +57,7 @@ static void mv2_bt_advertising_process(struct k_work *work) {
 	{
 		adv_param = *BT_LE_ADV_CONN;
 		adv_param.options |= BT_LE_ADV_OPT_ONE_TIME;
-		bt_le_adv_start(&adv_param, adv_data, ARRAY_SIZE(adv_data), NULL, 0);
+		bt_le_adv_start(&adv_param, adv_data, ARRAY_SIZE(adv_data), scan_data, ARRAY_SIZE(scan_data));
 	}
 }
 
@@ -183,6 +187,11 @@ int mv2_bt_init(PUBLIC_ADV_PARAM) {
 	}
 
 	rv = settings_load();
+	if (rv) {
+		return rv;
+	}
+
+	rv = mv2_mc_init();
 	if (rv) {
 		return rv;
 	}

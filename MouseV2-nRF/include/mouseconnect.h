@@ -1,0 +1,6 @@
+#ifndef MOUSEV2_MOUSECONNECT_H
+#define MOUSEV2_MOUSECONNECT_H
+
+int mv2_mc_init();
+
+#endif // MOUSEV2_MOUSECONNECT_H

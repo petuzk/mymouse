@@ -18,9 +18,11 @@
 #include <bluetooth/gatt.h>
 #include <bluetooth/services/bas.h>
 #include <bluetooth/services/hrs.h>
+#include <bluetooth/services/nus.h>
 
 #include "state.h"
 #include "hids.h"
+#include "mouseconnect.h"
 
 #if CONFIG_PRJ_BT_DIRECTED_ADVERTISING
 #define PUBLIC_ADV_PARAM  bool public_adv
