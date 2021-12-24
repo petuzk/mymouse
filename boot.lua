@@ -7,12 +7,10 @@ function center_h(state)
     set(led, false)
 end
 
---[[ BTN table not implemented yet
 function spec_h(state)
     if not state then return end
     for i = 1, 4 do
-        set(BTN.LEFT, i % 2)
+        set(BTN.LEFT, i % 2 == 1)
         sleep(15)
     end
 end
---]]
