@@ -56,18 +56,30 @@ static const luaL_Reg base_funcs[] = {
 	{NULL, NULL}
 };
 
-static void mv2lib_create_led_table(lua_State *L) {
+struct mv2lib_set_id_table_elem {
+	const char *name;  // either field or table name
+	int value;  // if -1, the name represents table name (should be last element)
+};
+
+static struct mv2lib_set_id_table_elem mv2lib_set_led_table[] = {
+	{"GREEN",  MV2LIB_TYPE_LED | LED_GREEN_PIN},
+	{"RED",    MV2LIB_TYPE_LED | LED_RED_PIN},
+	{"LED", -1}  // table name
+};
+
+static void mv2lib_create_set_id_table(lua_State *L, struct mv2lib_set_id_table_elem *table) {
     lua_createtable(L, 0, 2);
-	lua_pushinteger(L, MV2LIB_TYPE_LED | LED_GREEN_PIN);
-	lua_setfield(L, -2, "GREEN");
-	lua_pushinteger(L, MV2LIB_TYPE_LED | LED_RED_PIN);
-	lua_setfield(L, -2, "RED");
-	lua_setfield(L, -2, "LED");  // assuming there is a global table
+	for (; table->value != -1; table++) {
+		lua_pushinteger(L, table->value);
+		lua_setfield(L, -2, table->name);
+	}
+	// assuming there is a global table
+	lua_setfield(L, -2, table->name);
 }
 
 int mv2lib_open(lua_State *L) {
     lua_pushglobaltable(L);
 	luaL_setfuncs(L, base_funcs, 0);
-	mv2lib_create_led_table(L);
+	mv2lib_create_set_id_table(L, mv2lib_set_led_table);
 	return 0;
 }
