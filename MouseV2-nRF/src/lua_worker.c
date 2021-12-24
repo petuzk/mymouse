@@ -193,8 +193,14 @@ static int mv2_lw_luamain(lua_State *L) {
 				prog_btn_resume_at[i] = resume_at;
 			}
 
-			if (nresults) {
-				lua_pop(thread_L, nresults);
+			if (status == LUA_YIELD || status == LUA_OK) {
+				if (nresults) {
+					lua_pop(thread_L, nresults);
+				}
+			} else {
+				// error occured, reset thread and pop error message
+				lua_resetthread(thread_L);
+				lua_pop(thread_L, 1);
 			}
 		}
 	}
