@@ -121,6 +121,9 @@ static void mv2_lw_create_threads(lua_State *L) {
 			prog_btn_threads[i] = NULL;
 			lua_pop(L, 1);
 		}
+
+		// let the system do other stuff
+		k_usleep(200);
 	}
 
 	// pop the registry table

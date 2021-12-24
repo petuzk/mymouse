@@ -14,7 +14,7 @@
 // Number of input reports in this application
 #define INPUT_REPORT_COUNT          3
 // Length of Mouse Input Report containing button/movement/media player data
-#define INPUT_REP_BUTTONS_LEN       3
+#define INPUT_REP_BUTTONS_LEN       2
 #define INPUT_REP_MOVEMENT_LEN      3
 #define INPUT_REP_MPLAYER_LEN       1
 // Index of Mouse Input Report containing button/movement/media player data
@@ -26,9 +26,16 @@
 #define INPUT_REP_REF_MOVEMENT_ID   2
 #define INPUT_REP_REF_MPLAYER_ID    3
 
+#define BUTTON_ID_LEFT              0
+#define BUTTON_ID_RIGHT             1
+#define BUTTON_ID_MIDDLE            2
+
 int mv2_hids_init();
-int mv2_hids_send_movement(int16_t delta_x, int16_t delta_y);
-int mv2_hids_send_buttons_wheel(bool left, bool right, bool middle, int8_t wheel);
+int mv2_hids_send();
+void mv2_hids_add_wheel(int8_t value);
+void mv2_hids_add_delta_x(int16_t delta_x);
+void mv2_hids_add_delta_y(int16_t delta_y);
+void mv2_hids_set_button(uint8_t button_id, bool state);
 
 int mv2_hids_connected(struct bt_conn *conn);
 int mv2_hids_disconnected(struct bt_conn *conn);

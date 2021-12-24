@@ -7,6 +7,14 @@ BT_HIDS_DEF(hids_obj,
 	INPUT_REP_MOVEMENT_LEN,
 	INPUT_REP_MPLAYER_LEN);
 
+// values are saved here in between mv2_hids_send() calls
+// todo: use something queue-like to be able to send double transitions
+// (e.g. 0 to 1 and then 1 to 0) between mv2_hids_send() calls
+static uint8_t saved_buttons_state, prev_saved_buttons_state;
+static int8_t  saved_wheel_value;
+static int16_t saved_delta_x;
+static int16_t saved_delta_y;
+
 static void mv2_hids_pm_evt_handler(enum bt_hids_pm_evt evt, struct bt_conn *conn) {
 	if (!conn || conn != current_client) {
 		return;
@@ -137,59 +145,35 @@ int mv2_hids_init() {
 	return bt_hids_init(&hids_obj, &hids_init_param);
 }
 
-int mv2_hids_send_movement(int16_t delta_x, int16_t delta_y) {
-	if (!current_client) {
-		return -ENODEV;
-	}
+void mv2_hids_add_wheel(int8_t value) {
+	saved_wheel_value += value;
+}
 
-	if (boot_mode) {
-		delta_x = MAX(MIN(delta_x, SCHAR_MAX), SCHAR_MIN);
-		delta_y = MAX(MIN(delta_y, SCHAR_MAX), SCHAR_MIN);
+void mv2_hids_add_delta_x(int16_t delta_x) {
+	saved_delta_x += delta_x;
+}
 
-		return bt_hids_boot_mouse_inp_rep_send(
-			&hids_obj,
-			current_client,
-			NULL,
-			(int8_t) delta_x,
-			(int8_t) delta_y,
-			NULL);
+void mv2_hids_add_delta_y(int16_t delta_y) {
+	saved_delta_y += delta_y;
+}
+
+void mv2_hids_set_button(uint8_t button_id, bool state) {
+	if (state) {
+		saved_buttons_state |=  (1 << button_id);
 	} else {
-		uint8_t x_buff[2];
-		uint8_t y_buff[2];
-		uint8_t buffer[INPUT_REP_MOVEMENT_LEN];
-
-		int16_t x = MAX(MIN(delta_x, 0x07ff), -0x07ff);
-		int16_t y = MAX(MIN(delta_y, 0x07ff), -0x07ff);
-
-		/* Convert to little-endian. */
-		sys_put_le16(x, x_buff);
-		sys_put_le16(y, y_buff);
-
-		/* Encode report. */
-		BUILD_ASSERT(sizeof(buffer) == 3, "Only 2 axis, 12-bit each, are supported");
-
-		buffer[0] = x_buff[0];
-		buffer[1] = (y_buff[0] << 4) | (x_buff[1] & 0x0f);
-		buffer[2] = (y_buff[1] << 4) | (y_buff[0] >> 4);
-
-		return bt_hids_inp_rep_send(
-			&hids_obj,
-			current_client,
-			INPUT_REP_MOVEMENT_IDX,
-			buffer,
-			sizeof(buffer),
-			NULL);
+		saved_buttons_state &= ~(1 << button_id);
 	}
 }
 
-int mv2_hids_send_buttons_wheel(bool left, bool right, bool middle, int8_t wheel) {
+static inline int mv2_hids_send_buttons_report() {
 	uint8_t buffer[INPUT_REP_BUTTONS_LEN];
 	union {
 		int8_t i;
 		uint8_t u;
-	} wheel_union = { .i = wheel };
+	} wheel_union = { .i = saved_wheel_value };
 
-	buffer[0] = (left << 0) | (right << 1) | (middle << 2);
+	BUILD_ASSERT(sizeof(buffer) == 2, "2 bytes required");
+	buffer[0] = saved_buttons_state;
 	buffer[1] = wheel_union.u;
 
 	return bt_hids_inp_rep_send(
@@ -199,6 +183,75 @@ int mv2_hids_send_buttons_wheel(bool left, bool right, bool middle, int8_t wheel
 		buffer,
 		sizeof(buffer),
 		NULL);
+}
+
+static inline int mv2_hids_send_motion_report() {
+	uint8_t x_buff[2];
+	uint8_t y_buff[2];
+	uint8_t buffer[INPUT_REP_MOVEMENT_LEN];
+
+	// convert to little-endian
+	sys_put_le16(MAX(MIN(saved_delta_x, 0x07ff), -0x07ff), x_buff);
+	sys_put_le16(MAX(MIN(saved_delta_y, 0x07ff), -0x07ff), y_buff);
+
+	BUILD_ASSERT(sizeof(buffer) == 3, "24 bits required (2 axis, 12 bits each)");
+	buffer[0] = x_buff[0];
+	buffer[1] = (y_buff[0] << 4) | (x_buff[1] & 0x0f);
+	buffer[2] = (y_buff[1] << 4) | (y_buff[0] >> 4);
+
+	return bt_hids_inp_rep_send(
+		&hids_obj,
+		current_client,
+		INPUT_REP_MOVEMENT_IDX,
+		buffer,
+		sizeof(buffer),
+		NULL);
+}
+
+int mv2_hids_send() {
+	if (!current_client) {
+		return -ENODEV;
+	}
+
+	const bool buttons_changed = saved_buttons_state != prev_saved_buttons_state;
+	const bool wheel_changed = saved_wheel_value;
+	const bool delta_changed =
+	saved_delta_x || saved_delta_y;
+
+	if (boot_mode && (buttons_changed || delta_changed)) {
+		return bt_hids_boot_mouse_inp_rep_send(
+			&hids_obj,
+			current_client,
+			&saved_buttons_state,
+			MAX(MIN(saved_delta_x, SCHAR_MAX), SCHAR_MIN),
+			MAX(MIN(saved_delta_y, SCHAR_MAX), SCHAR_MIN),
+			NULL);
+	}
+	else if (!boot_mode) {
+		int rv;
+
+		if (delta_changed) {
+			rv = mv2_hids_send_motion_report();
+			if (rv < 0) {
+				return rv;
+			}
+
+			saved_delta_x = 0;
+			saved_delta_y = 0;
+		}
+
+		if (buttons_changed || wheel_changed) {
+			rv = mv2_hids_send_buttons_report();
+			if (rv < 0) {
+				return rv;
+			}
+
+			prev_saved_buttons_state = saved_buttons_state;
+			saved_wheel_value = 0;
+		}
+	}
+
+	return 0;
 }
 
 int mv2_hids_connected(struct bt_conn *conn) {

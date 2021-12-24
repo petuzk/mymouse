@@ -13,7 +13,7 @@
 
 static inline int client_update_cycle() {
 	// custom accumulator to divide by 2 (a single click makes two transitions) and not loose remainders
-	static int rot_acc = 0;
+	static int rot_acc = 0, prev_left = 0, prev_right = 0, prev_middle = 0;
 	int left, right, middle;
 	struct sensor_value dx, dy, rot;
 	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
@@ -37,8 +37,21 @@ static inline int client_update_cycle() {
 	}
 
 	/* Write */
-	mv2_hids_send_movement(dx.val1, -dy.val1);
-	mv2_hids_send_buttons_wheel(left, right, middle, rot_acc / 2);
+	if (left != prev_left) {
+		mv2_hids_set_button(BUTTON_ID_LEFT, left);
+		prev_left = left;
+	}
+	if (right != prev_right) {
+		mv2_hids_set_button(BUTTON_ID_RIGHT, right);
+		prev_right = right;
+	}
+	if (middle != prev_middle) {
+		mv2_hids_set_button(BUTTON_ID_MIDDLE, middle);
+		prev_middle = middle;
+	}
+	mv2_hids_add_wheel(rot_acc / 2);
+	mv2_hids_add_delta_x(dx.val1);
+	mv2_hids_add_delta_y(-dy.val1);
 
 	rot_acc = rot_acc % 2;
 	return 0;
@@ -102,6 +115,8 @@ void main(void) {
 			if (client_update_cycle() || send_events_to_lua()) {
 				return;
 			}
+
+			mv2_hids_send();
 		}
 
 		if (k_timer_status_get(&bat_measurement_timer)) {
@@ -114,6 +129,6 @@ void main(void) {
 			bt_bas_set_battery_level((mv2_bat_convert_mv2pts(mv) + 50) / 100);
 		}
 
-		k_msleep(1);
+		k_msleep(5);
 	}
 }
