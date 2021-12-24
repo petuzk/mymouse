@@ -1,5 +1,7 @@
 #include "lua_worker.h"
 
+#include <string.h>
+
 #include "lua.h"
 #include "lstate.h"
 #include "lauxlib.h"
@@ -34,6 +36,8 @@ static const char *prog_btn_handler_names[MV2_LW_NUM_PROG_BUTTONS] = {
 
 static lua_State *prog_btn_threads[MV2_LW_NUM_PROG_BUTTONS] = {};
 
+static k_ticks_t prog_btn_resume_at[MV2_LW_NUM_PROG_BUTTONS] = {};
+
 static void mv2_lw_thread_f();
 
 K_THREAD_DEFINE(mv2_lw_thread_id,
@@ -44,21 +48,45 @@ K_THREAD_DEFINE(mv2_lw_thread_id,
 	0,
 	0);
 
-static int mv2_lw_testlib_helloworld(lua_State *L) {
-	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
+// based on luaB_yield from lcorolib.c
+// sleep just yields the coroutine and the main thread then scedules resume
+static int mv2_lw_lualib_sleep(lua_State *L) {
+	return lua_yield(L, lua_gettop(L));
+}
 
-	for (int i = 0; i < 3; i++) {
-		gpio_pin_set(gpio, LED_RED_PIN, true);
-		k_msleep(i == 2 ? 500 : 100);
-		gpio_pin_set(gpio, LED_RED_PIN, false);
-		k_msleep(100);
+static int mv2_lw_lualib_led(lua_State *L) {
+	if (lua_gettop(L) != 2) {
+		return luaL_error(L, "2 args expected");
+	}
+	if (!lua_isstring(L, 1)) {
+		return luaL_typeerror(L, 1, "string");
+	}
+	if (!lua_isboolean(L, 2)) {
+		return luaL_typeerror(L, 2, "bool");
 	}
 
+	const char *ledname = lua_tostring(L, 1);
+	uint8_t led_pin;
+	if (!strcmp(ledname, "green")) {
+		led_pin = LED_GREEN_PIN;
+	}
+	else if (!strcmp(ledname, "red")) {
+		led_pin = LED_RED_PIN;
+	}
+	else {
+		luaL_argerror(L, 1, "\"green\" or \"red\" expected");
+	}
+
+	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
+	gpio_pin_set(gpio, led_pin, lua_toboolean(L, 2));
+
+	lua_settop(L, 0);
 	return 0;
 }
 
 static const luaL_Reg base_funcs[] = {
-	{"hello_world", mv2_lw_testlib_helloworld},
+	{"sleep", mv2_lw_lualib_sleep},
+	{"led", mv2_lw_lualib_led},
 	{NULL, NULL}
 };
 
@@ -73,7 +101,7 @@ static const luaL_Reg mv2_lw_libs[] = {
 	{LUA_GNAME, luaopen_base},
 	{LUA_TABLIBNAME, luaopen_table},
 	{LUA_STRLIBNAME, luaopen_string},
-	{"test", mv2_lw_open_test},
+	{"mv2lib", mv2_lw_open_test},
 	{NULL, NULL}
 };
 
@@ -105,6 +133,7 @@ static inline uint32_t mv2_lw_inc_counter_val(lua_State *L) {
  * on top of the stack. The thread is saved in corresponding @c prog_btn_threads slot.
  * If no handler is defined by user, a thread is not created and NULL is stored instead.
  * Created threads are saved in Lua registry to not be collected by GC.
+ * Based on luaB_cocreate from lcorolib.c
  *
  * @param L Lua main state
  * @return int
@@ -112,7 +141,7 @@ static inline uint32_t mv2_lw_inc_counter_val(lua_State *L) {
 static void mv2_lw_create_threads(lua_State *L) {
 	// reset counter to 0 on main thread, this value will be copied to new threads
 	mv2_lw_reset_counter_val(L);
-	// initialize threads (based on luaB_cocreate from lcorolib.c)
+
 	// first, push registry table on stack
 	lua_pushvalue(L, LUA_REGISTRYINDEX);
 
@@ -121,25 +150,21 @@ static void mv2_lw_create_threads(lua_State *L) {
 		lua_getglobal(L, prog_btn_handler_names[i]);
 
 		if (lua_isfunction(L, -1)) {
-			// duplicate the handler function
-			lua_pushvalue(L, -1);
 			lua_State *NL = lua_newthread(L);
 
-			// stack contents now (there might be objects underneath):
+			// L's stack contents now:
 			//   -1 [newly created thread]
 			//   -2 [  handler function  ]
-			//   -3 [  handler function  ]
-			//   -4 [   registry table   ]
+			//   -3 [   registry table   ]
 
 			// add thread to registry: registry[handler_func] = thread
-			// table is at -4, handler function being a key and thread being a value will be popped from top
-			lua_settable(L, -4);
+			// table is at -3, handler function being a key and thread being a value will be popped from top
+			lua_settable(L, -3);
 
-			// store thread and move handler function (was -3) to the new thread
+			// store thread
 			prog_btn_threads[i] = NL;
-			lua_xmove(L, NL, 1);
 		} else {
-			// pop handler function
+			// no thread created, pop handler function
 			prog_btn_threads[i] = NULL;
 			lua_pop(L, 1);
 		}
@@ -168,33 +193,53 @@ static int mv2_lw_luamain(lua_State *L) {
 	mv2_lw_create_threads(L);
 
 	// main loop
-	for (int i = 0;;) {
+	for (int i = 0;; i = (++i == MV2_LW_NUM_PROG_BUTTONS) ? 0 : i) {
+		int nargs = -1;
 		lua_State *thread_L = prog_btn_threads[i];
 		uint32_t curr_counter = prog_btn_counters[i];
+		k_ticks_t resume_time = prog_btn_resume_at[i];
 
-		// fire event handlers
-		if (thread_L && thread_L->status != LUA_YIELD && mv2_lw_get_counter_val(thread_L) < curr_counter) {
-			int status, nresults;
-
-			// default thread's stack contents is a handler function
-			// lua_resume pops the function, so we duplicate it first
-			lua_pushvalue(thread_L, -1);
-			// handler's argument, i.e. current button state
-			lua_pushboolean(thread_L, mv2_lw_inc_counter_val(thread_L) & 1);
-			// actual call
-			status = lua_resume(thread_L, L, 1, &nresults);
-
-			// clean results for now, can be used later
-			if (status != LUA_YIELD) {
-				// when status != LUA_YIELD, lua_resume treats everything on stack as return values,
-				// but actually we've pushed a copy of the function earlier which should not be popped.
-				nresults -= 1;
-			}
-			lua_pop(thread_L, nresults);
+		// no thread means no user-defined handler
+		if (!thread_L) {
+			continue;
 		}
 
-		if (++i == MV2_LW_NUM_PROG_BUTTONS) {
-			i = 0;
+		// if the thread is not running, fire event handler (if any)
+		if (thread_L->status != LUA_YIELD && mv2_lw_get_counter_val(thread_L) < curr_counter) {
+			// todo: replace lua_getglobal with possibly faster lookup
+			lua_getglobal(thread_L, prog_btn_handler_names[i]);
+			// handler's argument, i.e. current button state
+			lua_pushboolean(thread_L, mv2_lw_inc_counter_val(thread_L) & 1);
+			// require resume with 1 arg
+			nargs = 1;
+		}
+		else if (thread_L->status == LUA_YIELD && resume_time && resume_time <= k_uptime_ticks()) {
+			// require resume with no args
+			nargs = 0;
+		}
+
+		if (nargs >= 0) {
+			int status, nresults;
+			status = lua_resume(thread_L, L, nargs, &nresults);
+
+			if (status != LUA_YIELD) {
+				// unschedule resume
+				prog_btn_resume_at[i] = 0;
+			} else {
+				// thread yielded, schedule resume
+				k_ticks_t resume_at = k_uptime_ticks();
+
+				if (nresults && lua_isinteger(thread_L, 1)) {
+					// add specified number of milliseconds to resume time
+					resume_at += k_ms_to_ticks_floor64(lua_tointeger(thread_L, 1));
+				}
+
+				prog_btn_resume_at[i] = resume_at;
+			}
+
+			if (nresults) {
+				lua_pop(thread_L, nresults);
+			}
 		}
 	}
 
