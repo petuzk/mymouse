@@ -26,5 +26,6 @@ target_sources(app PRIVATE
     src/battery.c
     src/fs.c
     src/lua_worker.c
+    src/lua_mv2lib.c
     src/mouseconnect.c
 )

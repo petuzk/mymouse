@@ -7,7 +7,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "sys.h"  // used in mv2_lw_testlib_helloworld
+#include "lua_mv2lib.h"
+#include "sys.h"
 
 static uint8_t mv2_lw_heap_buf[CONFIG_PRJ_LUA_WORKER_HEAP_SIZE];
 
@@ -48,60 +49,12 @@ K_THREAD_DEFINE(mv2_lw_thread_id,
 	0,
 	0);
 
-// based on luaB_yield from lcorolib.c
-// sleep just yields the coroutine and the main thread then scedules resume
-static int mv2_lw_lualib_sleep(lua_State *L) {
-	return lua_yield(L, lua_gettop(L));
-}
-
-static int mv2_lw_lualib_led(lua_State *L) {
-	if (lua_gettop(L) != 2) {
-		return luaL_error(L, "2 args expected");
-	}
-	if (!lua_isstring(L, 1)) {
-		return luaL_typeerror(L, 1, "string");
-	}
-	if (!lua_isboolean(L, 2)) {
-		return luaL_typeerror(L, 2, "bool");
-	}
-
-	const char *ledname = lua_tostring(L, 1);
-	uint8_t led_pin;
-	if (!strcmp(ledname, "green")) {
-		led_pin = LED_GREEN_PIN;
-	}
-	else if (!strcmp(ledname, "red")) {
-		led_pin = LED_RED_PIN;
-	}
-	else {
-		luaL_argerror(L, 1, "\"green\" or \"red\" expected");
-	}
-
-	const struct device *gpio = DEVICE_DT_GET_ONE(nordic_nrf_gpio);
-	gpio_pin_set(gpio, led_pin, lua_toboolean(L, 2));
-
-	lua_settop(L, 0);
-	return 0;
-}
-
-static const luaL_Reg base_funcs[] = {
-	{"sleep", mv2_lw_lualib_sleep},
-	{"led", mv2_lw_lualib_led},
-	{NULL, NULL}
-};
-
-static int mv2_lw_open_test(lua_State *L) {
-	lua_pushglobaltable(L);
-	luaL_setfuncs(L, base_funcs, 0);
-	return 0;
-}
-
 // based on code from linit.c
 static const luaL_Reg mv2_lw_libs[] = {
 	{LUA_GNAME, luaopen_base},
 	{LUA_TABLIBNAME, luaopen_table},
 	{LUA_STRLIBNAME, luaopen_string},
-	{"mv2lib", mv2_lw_open_test},
+	{MV2LIB_LIBNAME, mv2lib_open},
 	{NULL, NULL}
 };
 
