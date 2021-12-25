@@ -121,9 +121,6 @@ static void mv2_lw_create_threads(lua_State *L) {
 			prog_btn_threads[i] = NULL;
 			lua_pop(L, 1);
 		}
-
-		// let the system do other stuff
-		k_usleep(200);
 	}
 
 	// pop the registry table
@@ -154,6 +151,9 @@ static int mv2_lw_luamain(lua_State *L) {
 		lua_State *thread_L = prog_btn_threads[i];
 		uint32_t curr_counter = prog_btn_counters[i];
 		k_ticks_t resume_time = prog_btn_resume_at[i];
+
+		// let the system do other stuff
+		k_usleep(200);
 
 		// no thread means no user-defined handler
 		if (!thread_L) {
