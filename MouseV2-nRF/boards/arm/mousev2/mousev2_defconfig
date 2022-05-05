@@ -5,16 +5,11 @@ CONFIG_SOC_SERIES_NRF52X=y
 CONFIG_SOC_NRF52832_QFAA=y
 CONFIG_BOARD_MOUSEV2=y
 
-# Enable GPIO-controlled regulator
+# Enable GPIO, configure reset & NFC pins as regular GPIOs
 CONFIG_GPIO=y
-CONFIG_REGULATOR=y
-
-# Enable MPU
-CONFIG_ARM_MPU=y
-
-# Enable hardware stack protection
-CONFIG_HW_STACK_PROTECTION=y
-
-# Use reset & NFC pins as regular GPIOs
 CONFIG_NFCT_PINS_AS_GPIOS=y
 CONFIG_GPIO_AS_PINRESET=n
+
+# Enable MPU & hardware stack protection
+CONFIG_ARM_MPU=y
+CONFIG_HW_STACK_PROTECTION=y

@@ -1,6 +1,6 @@
 *.code-workspace
+**/build*
 
-MouseV2-nRF/build*
 MouseV2-nRF/todo.md
 
 MouseConnect/mouseconnect.xcodeproj/
