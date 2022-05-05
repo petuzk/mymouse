@@ -1,5 +1,10 @@
 #include "bluetooth.h"
 
+#include <host/hci_core.h>
+#include <logging/log.h>
+
+LOG_MODULE_REGISTER(mv2bt, LOG_LEVEL_DBG);
+
 static struct k_work adv_work;
 static const struct bt_data adv_data[] = {
 	BT_DATA_BYTES(BT_DATA_GAP_APPEARANCE,
@@ -49,12 +54,16 @@ static void mv2_bt_advertising_process(struct k_work *work) {
 
 	if (bt_addr_le_cmp(&addr, BT_ADDR_LE_ANY)) {
 		// not a BT_ADDR_LE_ANY, start directed advertising
+		char buf[20];
+		bt_addr_le_to_str(&addr, buf, 20);
+		LOG_INF("direct adv to %s", buf);
 		adv_param = *BT_LE_ADV_CONN_DIR(&addr);
 		bt_le_adv_start(&adv_param, NULL, 0, NULL, 0);
 	}
 	else
 #endif
 	{
+		LOG_INF("undirect adv");
 		adv_param = *BT_LE_ADV_CONN;
 		adv_param.options |= BT_LE_ADV_OPT_ONE_TIME;
 		bt_le_adv_start(&adv_param, adv_data, ARRAY_SIZE(adv_data), scan_data, ARRAY_SIZE(scan_data));
@@ -95,7 +104,9 @@ static void mv2_bt_advertising_start(PUBLIC_ADV_PARAM) {
 	if (PUBLIC_ADV_ARG) {
 		// request undirected advertising, i.e. visible to public
 		k_msgq_put(&bonds_queue, BT_ADDR_LE_ANY, K_NO_WAIT);
+		LOG_INF("putting BT_ADDR_LE_ANY to queue");
 	} else {
+		LOG_INF("bt_foreach_bond to queue");
 		bt_foreach_bond(BT_ID_DEFAULT, mv2_bt_put_bond_to_queue, NULL);
 	}
 #endif
@@ -170,6 +181,8 @@ static struct bt_conn_cb conn_callbacks = {
  * @return 0 on success, negative error code otherwise.
  */
 int mv2_bt_init(PUBLIC_ADV_PARAM) {
+	LOG_INF("mv2_bt_init");
+
 	int rv;
 	bt_conn_cb_register(&conn_callbacks);
 
@@ -190,6 +203,8 @@ int mv2_bt_init(PUBLIC_ADV_PARAM) {
 	if (rv) {
 		return rv;
 	}
+
+	bt_finalize_init();
 
 	rv = mv2_mc_init();
 	if (rv) {

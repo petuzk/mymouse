@@ -11,6 +11,10 @@
 #include "fs.h"
 #include "lua_worker.h"
 
+#include <logging/log.h>
+
+LOG_MODULE_REGISTER(mv2main, LOG_LEVEL_DBG);
+
 static inline int client_update_cycle() {
 	// custom accumulator to divide by 2 (a single click makes two transitions) and not loose remainders
 	static int rot_acc = 0, prev_left = 0, prev_right = 0, prev_middle = 0;
@@ -74,6 +78,8 @@ static inline int send_events_to_lua() {
 }
 
 void main(void) {
+	LOG_INF("entering main");
+
 	int rv, prev_btnmode_status = 1;
 	struct mv2_sys_boot_opt boot_opt;
 	struct k_timer bat_measurement_timer;
@@ -83,13 +89,11 @@ void main(void) {
 	if (mv2_bat_init()) return;
 	if (mv2_fs_init()) return;
 
-#ifndef CONFIG_DEBUG
 	if (mv2_bt_init(
 #ifdef CONFIG_PRJ_BT_DIRECTED_ADVERTISING
 		boot_opt.public_adv
 #endif // CONFIG_PRJ_BT_DIRECTED_ADVERTISING
 	)) return;
-#endif // CONFIG_DEBUG
 
 	if (mv2_hids_init()) return;
 
@@ -132,3 +136,18 @@ void main(void) {
 		k_msleep(5);
 	}
 }
+
+// static volatile char print_buf[512] = "";
+// static volatile int buf_counter = 0;
+
+// int arch_printk_char_out(int c) {
+// 	if (c == '\n' || buf_counter == sizeof(print_buf)) {
+// 		print_buf[buf_counter] = '\0';
+// 		// breakpoint here
+// 		buf_counter = 0;
+// 		print_buf[0] = '\0';
+// 	} else {
+// 		print_buf[buf_counter++] = c;
+// 	}
+// 	return 0;
+// }

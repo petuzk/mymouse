@@ -134,6 +134,7 @@ static int mv2_lw_luamain(lua_State *L) {
 	lua_gc(L, LUA_GCGEN, 0, 0);
 
 	// execute user code to obtain handler definitions
+	// todo: file may be missing
 	if (luaL_loadfile(L, MV2FS_MOUNTPOINT "/" CONFIG_PRJ_LUA_SCRIPT_NAME) != LUA_OK) {
 		return 0;
 	}
