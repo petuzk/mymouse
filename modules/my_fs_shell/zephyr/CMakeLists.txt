@@ -1,0 +1,5 @@
+if(CONFIG_MY_FILE_SYSTEM_SHELL)
+  zephyr_library()
+  zephyr_library_sources(shell.c)
+  zephyr_library_link_libraries(FS)
+endif()

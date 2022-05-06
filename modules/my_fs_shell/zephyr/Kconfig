@@ -1,0 +1,16 @@
+config MY_FILE_SYSTEM_SHELL
+	bool "Enable modified file system shell"
+	depends on SHELL && FILE_SYSTEM
+	help
+	  This shell is a modified version of default FILE_SYSTEM_SHELL
+	  with "fs mount" command made optional. Disabling it allows to
+	  get rid of non-zero HEAP_MEM_POOL_SIZE requirement, because
+	  k_malloc is only used for this command.
+
+if MY_FILE_SYSTEM_SHELL
+
+config MY_FILE_SYSTEM_SHELL_ENABLE_MOUNT
+	bool "Enable fs mount command"
+	depends on HEAP_MEM_POOL_SIZE > 0 && (FAT_FILESYSTEM_ELM || FILE_SYSTEM_LITTLEFS)
+
+endif
