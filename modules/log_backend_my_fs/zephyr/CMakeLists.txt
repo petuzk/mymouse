@@ -1,0 +1,5 @@
+if(CONFIG_LOG_BACKEND_MY_FS)
+  zephyr_library()
+  zephyr_library_sources(log_backend_my_fs.c)
+  zephyr_library_link_libraries(FS)
+endif()

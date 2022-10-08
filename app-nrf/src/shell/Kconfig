@@ -1,0 +1,16 @@
+config APP_SHELL_HID_REPORT
+  bool "Enable HID report shell"
+  default false
+  help
+    Adds commands allowing to modify HID report.
+    Helpful to simulate physical interaction with a HID device.
+
+config APP_SHELL_PLATFORM
+  bool "Enable platform shell"
+  default false
+  help
+    Adds hardware control commands.
+
+config APP_SHELL_SERVICES
+  bool "Enable services shell"
+  default false

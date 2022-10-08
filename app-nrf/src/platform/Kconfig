@@ -1,0 +1,26 @@
+config PLATFORM_INIT_PRIORITY
+  int "Platform init priority"
+  default 45
+  help
+    Init priority of platform startup. At this step
+    boot condition is verified (i.e. whether the power
+    button is being held long enough) and GPIO is
+    initialized. Should be done as early as possible to
+    prevent further system boot when boot condition is
+    not met. Should be done after MPSL (whatever it is),
+    i.e. this value should be greater than
+    KERNEL_INIT_PRIORITY_DEFAULT.
+
+config SKIP_BOOT_CONDITION
+  bool "Skip boot condition check"
+  default n
+  help
+    If true, boot condition check will be skipped.
+    The platform will start regardless of the power on button.
+
+config POWER_ON_OFF_HOLD_TIME
+  int "Power switch hold time"
+  default 1000
+  help
+    A number of milliseconds the power switch
+    has to be held to power the device on or off.

@@ -1,0 +1,5 @@
+source "Kconfig.zephyr"
+
+menu "App Configuration"
+rsource "src/Kconfig"
+endmenu

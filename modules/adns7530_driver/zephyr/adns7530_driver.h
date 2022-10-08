@@ -83,13 +83,10 @@ extern "C" {
 
 struct adns7530_config {
 	struct spi_dt_spec spi;
-
-#ifdef CONFIG_ADNS7530_TRIGGER
 	// motion pin config
 	const char *mot_label;
 	uint8_t mot_pin;
 	uint8_t mot_flags;
-#endif
 };
 
 struct adns7530_data {

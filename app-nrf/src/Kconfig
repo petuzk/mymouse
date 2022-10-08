@@ -1,0 +1,4 @@
+rsource "platform/Kconfig"
+rsource "services/Kconfig"
+rsource "shell/Kconfig"
+rsource "transport/Kconfig"

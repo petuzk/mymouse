@@ -1,0 +1,6 @@
+config APP_TRANSPORT_INIT_PRIORITY
+  int "Transport init priority"
+  default 30
+  help
+    Init priority of transport provider. At this step
+    bluetooth is initialized.

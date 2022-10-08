@@ -1,0 +1,26 @@
+config APP_BOOTOPTS_INIT_PRIORITY
+  int "Boot options init priority"
+  default 10
+  help
+    Init priority for boot options detection.
+    No dependencies to other services.
+
+config APP_BATTERY_INIT_PRIORITY
+  int "Battery service init priority"
+  default 90
+  help
+    Init priority for battery service.
+    Requires transport to be initialized
+    to send initial battery charge level.
+
+config APP_BATTERY_MEAS_PERIOD_SEC
+  int "Battery measurement period (seconds)"
+  default 120
+
+config APP_BUTTON_MODE_INIT_PRIORITY
+  int "Mode button init priority"
+  default 95
+  help
+    This should be the last step of initialization.
+    Successfull boot is signalled to the user with
+    current battery level information.

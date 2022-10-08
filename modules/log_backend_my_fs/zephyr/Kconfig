@@ -1,0 +1,27 @@
+config LOG_BACKEND_MY_FS
+	bool "Enable modified LOG FS backend"
+	depends on LOG && FILE_SYSTEM
+
+if LOG_BACKEND_MY_FS
+
+config LOG_BACKEND_MY_FS_DIR
+	string "Directory to store logs in"
+	default "/log"
+
+config LOG_BACKEND_MY_FS_FILE_PREFIX
+	string "Prefix of log filename"
+	default "log."
+
+config LOG_BACKEND_MY_FS_FILE_SIZE
+	int "Max size of log file (bytes)"
+	default 2048
+
+config LOG_BACKEND_MY_FS_OVERWRITE
+	bool "Whether to overwrite old logs"
+	default y
+
+config LOG_BACKEND_MY_FS_FILES_LIMIT
+	int "Maximum number of files to store"
+	default 10
+
+endif

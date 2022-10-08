@@ -4,7 +4,19 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <logging/log.h>
+
+LOG_MODULE_REGISTER(adns7530);
+
 #include "adns7530_driver.h"
+
+#ifdef CONFIG_SOC_NRF52832_ALLOW_SPIM_DESPITE_PAN_58
+// when SPIM is used, transactions where RX buffer size is 1 will be declined by sdk
+// workaround: receive 2 bytes instead, sensor won't do anything during 2nd byte clk
+#define ONE_BYTE_RX_BUF_SIZE 2
+#else
+#define ONE_BYTE_RX_BUF_SIZE 1
+#endif
 
 static inline struct spi_dt_spec* adns7530_get_spi(const struct device *dev) {
 	return &((struct adns7530_config *) dev->config)->spi;
@@ -73,13 +85,21 @@ static inline int adns7530_reg_write(const struct device *restrict dev, uint8_t 
 }
 
 int adns7530_init(const struct device *dev) {
+	const struct adns7530_config *config = dev->config;
+	const struct device *mot_gpio = device_get_binding(config->mot_label);
+	if (mot_gpio == NULL) {
+		return -ENXIO;
+	}
+	gpio_pin_configure(mot_gpio, config->mot_pin, GPIO_INPUT | config->mot_flags);
+
 	adns7530_reg_write(dev, ADNS7530_REG_POWER_UP_RESET, ADNS7530_RESET_VALUE);
 	k_msleep(10);
 	adns7530_reg_write(dev, ADNS7530_REG_OBSERVATION, 0x00);
 	k_msleep(10);
-	uint8_t observation_val = 0;
-	adns7530_reg_read(dev, ADNS7530_REG_OBSERVATION, &observation_val, 1);
-	if ((observation_val & 0xF) != 0xF) {
+	uint8_t observation_val[ONE_BYTE_RX_BUF_SIZE] = {};
+	adns7530_reg_read(dev, ADNS7530_REG_OBSERVATION, observation_val, ONE_BYTE_RX_BUF_SIZE);
+	if ((*observation_val & 0xF) != 0xF) {
+		LOG_ERR("invalid observation value %x", *observation_val);
 		return -ENODATA;
 	}
 	adns7530_reg_read(dev, ADNS7530_REG_MOTION_BURST, NULL, 4);
@@ -94,9 +114,10 @@ int adns7530_init(const struct device *dev) {
 	adns7530_reg_write(dev, 0x37, 0xB9);
 
 	// Verify product ID
-	uint8_t product_id = 0;
-	adns7530_reg_read(dev, ADNS7530_REG_PRODUCT_ID, &product_id, 1);
-	if (product_id != ADNS7530_PRODUCT_ID) {
+	uint8_t product_id[ONE_BYTE_RX_BUF_SIZE] = {};
+	adns7530_reg_read(dev, ADNS7530_REG_PRODUCT_ID, product_id, ONE_BYTE_RX_BUF_SIZE);
+	if (*product_id != ADNS7530_PRODUCT_ID) {
+		LOG_ERR("invalid product id %x", *product_id);
 		return -ENODATA;
 	}
 
@@ -131,6 +152,7 @@ int adns7530_sample_fetch(const struct device *dev, enum sensor_channel chan) {
 	adns7530_reg_read(dev, ADNS7530_REG_MOTION_BURST, &motion_burst, sizeof(motion_burst));
 
 	if (motion_burst.motion & ADNS7530_LASER_FAULT_MASK || !(motion_burst.motion & ADNS7530_LASER_CFG_VALID_MASK)) {
+		LOG_ERR("laser fault or laser invalid cfg");
 		return -ENODATA;
 	}
 
@@ -171,12 +193,10 @@ static struct adns7530_data adns7530_data = { };
 
 static struct adns7530_config adns7530_config = {
 	.spi = SPI_DT_SPEC_INST_GET(0, ADNS7530_SPI_OPERATION, 0),
-#ifdef CONFIG_ADNS7530_TRIGGER
 	// motion pin config
 	.mot_label = DT_INST_GPIO_LABEL(0, mot_gpios),
 	.mot_pin = DT_INST_GPIO_PIN(0, mot_gpios),
 	.mot_flags = DT_INST_GPIO_FLAGS(0, mot_gpios),
-#endif
 };
 
 static const struct sensor_driver_api adns7530_api_funcs = {
