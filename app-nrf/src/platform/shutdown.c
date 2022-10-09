@@ -2,6 +2,7 @@
 
 #include <hal/nrf_gpio.h>
 #include <hal/nrf_power.h>
+#include <hal/nrf_spim.h>
 
 #include "platform/gpio.h"
 
@@ -11,6 +12,9 @@ void shutdown() {
 
     // enable sense for button_mode pin for wake up
     nrf_gpio_cfg_sense_input(PINOF(button_mode), NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
+
+    // disable spi
+    nrf_spim_disable(NRF_SPIM0);
 
     // disconnect all other pins
     for (int pin = 0; pin < 32; pin++) {
