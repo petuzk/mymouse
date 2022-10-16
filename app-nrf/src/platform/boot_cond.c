@@ -4,7 +4,6 @@
 
 #include "platform/gpio.h"
 #include "platform/hw_resources.h"
-#include "platform/qdec.h"
 #include "platform/shutdown.h"
 #include "platform/timer_utils.h"
 
@@ -63,7 +62,7 @@ static int platform_init_ensure_vdd_stable(const struct device *dev) {
 }
 
 // should be after mpsl_lib_init (/opt/nordic/ncs/v1.7.1/nrf/subsys/mpsl/init/mpsl_init.c:211)
-SYS_INIT(platform_init_check_boot_cond, PRE_KERNEL_1, CONFIG_PLATFORM_INIT_PRIORITY);
+SYS_INIT(platform_init_check_boot_cond, PRE_KERNEL_1, CONFIG_BOOT_COND_INIT_PRIORITY);
 
 // ensure vdd is stable as a last step of kernel init
 // assuming that external devices init may take place at least at POST_KERNEL

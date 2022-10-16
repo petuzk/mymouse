@@ -1,15 +1,20 @@
-config PLATFORM_INIT_PRIORITY
-  int "Platform init priority"
+config BOOT_COND_INIT_PRIORITY
+  int "Boot condition check init priority"
   default 45
   help
-    Init priority of platform startup. At this step
-    boot condition is verified (i.e. whether the power
-    button is being held long enough) and GPIO is
-    initialized. Should be done as early as possible to
-    prevent further system boot when boot condition is
-    not met. Should be done after MPSL (whatever it is),
+    Init priority of boot condition check, which verifies
+    whether the power button is being held long enough.
+    It is executed in PRE_KERNEL_1 stage and should be done
+    as early as possible to prevent further system boot
+    when boot condition is not met. Should be done after MPSL,
     i.e. this value should be greater than
     KERNEL_INIT_PRIORITY_DEFAULT.
+
+config PLATFORM_INIT_PRIORITY
+  int "Platform init priority"
+  default 50
+  help
+    Init priority of SoC subsystems at POST_KERNEL stage.
 
 config SKIP_BOOT_CONDITION
   bool "Skip boot condition check"

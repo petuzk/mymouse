@@ -75,4 +75,4 @@ void adc_set_measurement_ready_cb(measurement_ready_cb_t callback) {
     meas_rdy_cb = callback;
 }
 
-SYS_INIT(adc_init, POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY);
+SYS_INIT(adc_init, POST_KERNEL, CONFIG_PLATFORM_INIT_PRIORITY);

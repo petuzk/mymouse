@@ -35,4 +35,4 @@ int qdec_read_acc() {
     return nrf_qdec_accread_get(NRF_QDEC);
 }
 
-SYS_INIT(qdec_init, POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY);
+SYS_INIT(qdec_init, POST_KERNEL, CONFIG_PLATFORM_INIT_PRIORITY);

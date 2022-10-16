@@ -39,4 +39,4 @@ static int gpio_init(const struct device *dev) {
     return 0;
 }
 
-SYS_INIT(gpio_init, POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY);
+SYS_INIT(gpio_init, POST_KERNEL, CONFIG_PLATFORM_INIT_PRIORITY);

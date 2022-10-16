@@ -1,12 +1,12 @@
 target_sources(app
     PRIVATE
         adc.c
+        boot_cond.c
         clock_suppl.c
         gpio.c
         log.c
         pwm.c
         qdec.c
         shutdown.c
-        startup.c
         thread_respool_workaround.c
 )

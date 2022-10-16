@@ -74,4 +74,4 @@ bool pwm_sequence_done() {
     return nrf_pwm_event_check(NRF_PWM0, CONCAT(NRF_PWM_EVENT_SEQEND, SEQ_ID));
 }
 
-SYS_INIT(pwm_init, POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY);
+SYS_INIT(pwm_init, POST_KERNEL, CONFIG_PLATFORM_INIT_PRIORITY);
