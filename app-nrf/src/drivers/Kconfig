@@ -1,0 +1,6 @@
+config ADNS7530_SURF_QUAL_THRESHOLD
+	int "Surface quality threshold"
+	range 0 242
+	default 120
+	help
+	  Readings indicating surface quality lower than the given threshold are ignored.

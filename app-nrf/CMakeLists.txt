@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.20.0)
 
 # custom zephyr modules
 list(APPEND ZEPHYR_EXTRA_MODULES
-    ${CMAKE_CURRENT_LIST_DIR}/../modules/adns7530_driver
     # ${CMAKE_CURRENT_LIST_DIR}/../modules/log_backend_my_fs
     ${CMAKE_CURRENT_LIST_DIR}/../modules/my_fs_shell
 )
