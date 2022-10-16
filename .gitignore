@@ -1,6 +1,7 @@
 *.code-workspace
 **/build*
 
-MouseV2-nRF/todo.md
+.doit.db
+__pycache__
 
 MouseConnect/mouseconnect.xcodeproj/
