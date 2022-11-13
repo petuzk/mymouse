@@ -133,7 +133,7 @@ rotary_encoder: &qdec {
 	sck-pin = <15>;
 	miso-pin = <17>;
 	mosi-pin = <18>;
-	cs-gpios = <&gpio0 20 GPIO_ACTIVE_LOW>, <&gpio0 11 GPIO_ACTIVE_LOW>;  // ADNS (20), AVR(11)
+	cs-gpios = <&gpio0 20 GPIO_ACTIVE_LOW>, <&gpio0 11 GPIO_ACTIVE_LOW>, <&gpio0 16 GPIO_ACTIVE_LOW>;  // SNSR_CS, AVR_CS, AVR_RST
 
 	optical_sensor: adns7530@0 {
 		compatible = "pixart,adns7530";
