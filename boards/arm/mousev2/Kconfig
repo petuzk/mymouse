@@ -1,0 +1,14 @@
+config BOARD_ENABLE_DCDC
+  bool "Enable DCDC mode"
+  select SOC_DCDC_NRF52X
+  default y
+  depends on BOARD_MOUSEV2
+
+
+config BOARD_VDD_EN_INIT_PRIORITY
+  int "VDD power rail init priority"
+  default 50
+  depends on GPIO
+  help
+    Initialization priority for the VDD power rail. Has to be greater
+    than GPIO_NRF_INIT_PRIORITY, but smaller than SENSOR_INIT_PRIORITY.
