@@ -9,7 +9,9 @@ PROGRAMMER_SSH_HOST = 'pi'
 @task_params([{'name': 'build_dir', 'default': 'build', 'short': 'b'}])
 def task_flash(build_dir):
     FILES_TO_COPY = [
-        'zephyr.hex'
+        'zephyr.hex',
+        'zephyr.lst',
+        'zephyr.map',
     ]
     zephyr_dir = f'{APP_NRF_DIRECTORY}/{build_dir}/zephyr'
     return {
