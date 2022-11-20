@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 
-#include <drivers/sensor.h>
+// #include <drivers/sensor.h>
 #include <hal/nrf_gpio.h>
 #include <logging/log.h>
 #include <zephyr.h>
@@ -55,7 +55,7 @@ static inline void fill_rotation(struct hid_report *report, bool *updated) {
 }
 
 static inline void fill_movement(struct hid_report *report, bool *updated) {
-    struct sensor_value value;
+    // struct sensor_value value;
 
 #ifdef CONFIG_APP_SHELL_HID_REPORT
     if (report_shell_fill_movement(report)) {
@@ -64,16 +64,16 @@ static inline void fill_movement(struct hid_report *report, bool *updated) {
     }
 #endif
 
-    if (nrf_gpio_pin_read(PINOFPROP(optical_sensor, mot_gpios)) == 0) {
-        // motion interrupt low -> data available, read will clear it
-        *updated = true;
+    // if (nrf_gpio_pin_read(PINOFPROP(optical_sensor, mot_gpios)) == 0) {
+    //     // motion interrupt low -> data available, read will clear it
+    //     *updated = true;
 
-        sensor_sample_fetch(optical_sensor);
-        sensor_channel_get(optical_sensor, SENSOR_CHAN_POS_DX, &value);
-        report->x_delta = value.val1;
-        sensor_channel_get(optical_sensor, SENSOR_CHAN_POS_DY, &value);
-        report->y_delta = -value.val1;
-    }
+    //     sensor_sample_fetch(optical_sensor);
+    //     sensor_channel_get(optical_sensor, SENSOR_CHAN_POS_DX, &value);
+    //     report->x_delta = value.val1;
+    //     sensor_channel_get(optical_sensor, SENSOR_CHAN_POS_DY, &value);
+    //     report->y_delta = -value.val1;
+    // }
 }
 
 static inline void clear_non_persistent_data_in_report(struct hid_report *report) {
