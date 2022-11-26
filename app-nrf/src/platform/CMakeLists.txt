@@ -8,5 +8,6 @@ target_sources(app
         pwm.c
         qdec.c
         shutdown.c
+        spi.c
         thread_respool_workaround.c
 )
