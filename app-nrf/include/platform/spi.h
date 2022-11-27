@@ -31,8 +31,9 @@ static inline void spi_configure(nrf_spim_mode_t op_mode, nrf_spim_bit_order_t b
 }
 
 extern struct k_sem spi_sem;
+
 static inline bool spi_transfer_in_progress() {
     return k_sem_count_get(&spi_sem) == 0;
 }
 
-int spi_transceive(int cs_pin, int cs_inactive, void* tx_buf, uint32_t tx_len, void* rx_buf, uint32_t rx_len);
+int spi_transceive(void* tx_buf, uint32_t tx_len, void* rx_buf, uint32_t rx_len, void (*callback)());
