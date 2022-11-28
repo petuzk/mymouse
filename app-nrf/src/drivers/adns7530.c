@@ -28,8 +28,9 @@ static struct {
     int err;
     int rx_len;
     void* rx_buf;
-    k_tid_t suspended_thread;
 } adns7530_spi_cb_ctx;
+
+K_SEM_DEFINE(adns7530_spi_transfer_end, 0, 1);
 
 static void adns7530_spi_done_callback() {
     if (adns7530_spi_cb_ctx.rx_buf) {
@@ -39,10 +40,10 @@ static void adns7530_spi_done_callback() {
             NULL, 0, adns7530_spi_cb_ctx.rx_buf, adns7530_spi_cb_ctx.rx_len, adns7530_spi_done_callback);
         adns7530_spi_cb_ctx.rx_buf = NULL;
         if (!adns7530_spi_cb_ctx.err) {
-            return;  // wait for second transaction to complete
+            return;  // wait for callback from second transaction
         }
     }
-    k_thread_resume(adns7530_spi_cb_ctx.suspended_thread);
+    k_sem_give(&adns7530_spi_transfer_end);
 }
 
 static inline int adns7530_spi_transceive(void* tx_buf, uint32_t tx_len, void* rx_buf, uint32_t rx_len) {
@@ -51,19 +52,30 @@ static inline int adns7530_spi_transceive(void* tx_buf, uint32_t tx_len, void* r
     adns7530_spi_cb_ctx.err = 0;
     adns7530_spi_cb_ctx.rx_len = rx_len;
     adns7530_spi_cb_ctx.rx_buf = rx_buf;
-    adns7530_spi_cb_ctx.suspended_thread = k_current_get();
+    k_sem_reset(&adns7530_spi_transfer_end);
 
     int err = spi_transceive(tx_buf, tx_len, NULL, 0, adns7530_spi_done_callback);
-    if (err) {
+    if (unlikely(err)) {
+        LOG_ERR("can't start spi tx transfer: error %d", err);
         goto exit;
     }
 
-    k_thread_suspend(adns7530_spi_cb_ctx.suspended_thread);
-    // ... wait until spi callback will resume the thread and it will be started by scheduler ...
-    err = adns7530_spi_cb_ctx.err;  // return code of second spi transaction
-    if (err) {
+    err = k_sem_take(&adns7530_spi_transfer_end, K_USEC(1000));
+    if (unlikely(err)) {
+        if (err == -EAGAIN) {
+            LOG_ERR("timed out waiting for spi transaction to end");
+        } else {
+            LOG_ERR("got error %d while waiting for spi transaction to end", err);
+        }
         goto exit;
     }
+
+    err = adns7530_spi_cb_ctx.err;  // return code of second spi transaction
+    if (unlikely(err)) {
+        LOG_ERR("can't start spi rx transfer: error %d", err);
+        goto exit;
+    }
+
     if (!rx_buf) {
         // if we are writing to the device, we should wait t_{SCLK-NCS} = 20us "for valid MOSI data transfer"
         // in practive, however, SPI task/event latency + thread resuming takes about 14us
