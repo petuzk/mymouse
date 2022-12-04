@@ -5,8 +5,7 @@ CONFIG_SOC_SERIES_NRF52X=y
 CONFIG_SOC_NRF52832_QFAA=y
 CONFIG_BOARD_MOUSEV2=y
 
-# Enable GPIO, configure reset & NFC pins as regular GPIOs
-CONFIG_GPIO=y
+# Configure reset & NFC pins as regular GPIOs
 CONFIG_NFCT_PINS_AS_GPIOS=y
 CONFIG_GPIO_AS_PINRESET=n
 
