@@ -1,14 +1,13 @@
 #pragma once
 
-#include <zephyr/types.h>
-#include <errno.h>
-#include <device.h>
-#include <drivers/sensor.h>
-#include <drivers/spi.h>
+#include <stdint.h>
+
+#include <hal/nrf_spim.h>
 
 #define DT_DRV_COMPAT pixart_adns7530
 
-#define ADNS7530_SPI_OPERATION (SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA)
+#define ADNS7530_SPI_MODE   NRF_SPIM_MODE_3
+#define ADNS7530_SPI_BITORD NRF_SPIM_BIT_ORDER_MSB_FIRST
 
 #define ADNS7530_REG_PRODUCT_ID        0x00
 #define ADNS7530_REG_REVISION_ID       0x01
@@ -71,20 +70,7 @@
 #define ADNS7530_RUN_RATE_7MS          0b101
 #define ADNS7530_RUN_RATE_8MS          0b110
 
-struct adns7530_config {
-	struct spi_dt_spec spi;
-	// motion pin config
-	const char *mot_label;
-	uint8_t mot_pin;
-	uint8_t mot_flags;
-};
-
 struct adns7530_data {
-	int16_t delta_x;
-	int16_t delta_y;
+    int16_t delta_x;
+    int16_t delta_y;
 };
-
-int adns7530_init(const struct device *dev);
-
-int adns7530_sample_fetch(const struct device *dev, enum sensor_channel chan);
-int adns7530_channel_get(const struct device *dev, enum sensor_channel chan, struct sensor_value *val);

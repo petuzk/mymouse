@@ -99,3 +99,16 @@ bool hidenc_maybe_update_client(struct transport* transport, struct hid_report* 
 
     return updated;
 }
+
+// todo: hidenc should probably be split & moved to services
+// until then, initialize sensor's interrupt gpio here
+
+static int hidenc_init(const struct device* dev) {
+    ARG_UNUSED(dev);
+
+    nrf_gpio_cfg_input(PINOFPROP(optical_sensor, mot_gpios), NRF_GPIO_PIN_NOPULL);
+
+    return 0;
+}
+
+SYS_INIT(hidenc_init, APPLICATION, 0);
