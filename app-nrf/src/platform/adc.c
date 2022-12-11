@@ -3,11 +3,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <devicetree.h>
 #include <hal/nrf_saadc.h>
-#include <init.h>
-#include <irq.h>
-#include <zephyr.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/init.h>
+#include <zephyr/irq.h>
+#include <zephyr/kernel.h>
 
 #define ADC_CHANNEL_ID    0
 #define ADC_INP_RANGE_MV  3000

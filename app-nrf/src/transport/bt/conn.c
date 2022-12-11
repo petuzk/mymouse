@@ -1,8 +1,9 @@
 #include "transport/bt/conn.h"
 
-#include <bluetooth/hci.h>
-#include <host/hci_core.h>
-#include <logging/log.h>
+#include <stdint.h>
+
+#include <zephyr/bluetooth/hci.h>
+#include <zephyr/logging/log.h>
 
 #include "transport/bt/adv.h"
 #include "transport/bt/hids.h"
@@ -60,7 +61,7 @@ static void bt_identity_resolved_callback(struct bt_conn *conn, const bt_addr_le
     char rpa_str[BT_ADDR_LE_STR_LEN], identity_str[BT_ADDR_LE_STR_LEN];
     bt_addr_le_to_str(rpa, rpa_str, sizeof(rpa_str));
     bt_addr_le_to_str(identity, identity_str, sizeof(identity_str));
-    LOG_INF("identity resolved: rpa %s, identity %s", log_strdup(rpa_str), log_strdup(identity_str));
+    LOG_INF("identity resolved: rpa %s, identity %s", rpa_str, identity_str);
 }
 
 static void bt_security_changed_callback(struct bt_conn *conn, bt_security_t level, enum bt_security_err err) {

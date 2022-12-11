@@ -5,7 +5,7 @@
 #include <hal/nrf_gpiote.h>
 #include <hal/nrf_ppi.h>
 #include <hal/nrf_timer.h>
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 #include "platform/hw_resources.h"
 

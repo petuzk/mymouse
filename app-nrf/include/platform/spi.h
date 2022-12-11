@@ -1,8 +1,9 @@
 #pragma once
 
 #include <stdint.h>
+
 #include <hal/nrf_spim.h>
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
 // stolen from zephyr/drivers/spi/spi_nrfx_spim.c
 // static inline is verified to be computed & inlined in each compilation unit

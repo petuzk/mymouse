@@ -2,12 +2,12 @@
 
 #include <stdint.h>
 
-#include <device.h>
-#include <drivers/sensor.h>
 #include <errno.h>
 #include <hal/nrf_gpio.h>
-#include <logging/log.h>
-#include <zephyr.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include "platform/spi.h"
 
@@ -89,8 +89,8 @@ exit:
 
 static inline int adns7530_reg_read(uint8_t reg, void* dst, uint32_t count) {
     uint8_t addr = reg & 0x7f;
+    uint8_t dst_dummy_buf[count];
     if (dst == NULL) {
-        uint8_t dst_dummy_buf[count];
         dst = dst_dummy_buf;
     }
 

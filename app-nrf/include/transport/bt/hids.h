@@ -1,6 +1,6 @@
 #pragma once
 
-#include <bluetooth/conn.h>
+#include <zephyr/bluetooth/conn.h>
 
 #include "hid_report_struct.h"
 

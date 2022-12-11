@@ -1,6 +1,6 @@
 #include <hal/nrf_gpio.h>
 #include <hal/nrf_timer.h>
-#include <init.h>
+#include <zephyr/init.h>
 
 #include "platform/gpio.h"
 #include "platform/hw_resources.h"

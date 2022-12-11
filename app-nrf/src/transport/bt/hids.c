@@ -4,7 +4,7 @@
 
 #include <bluetooth/services/hids.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 #include "hid_report_map.h"
 #include "hid_report_struct.h"

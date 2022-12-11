@@ -1,7 +1,7 @@
 #include "services/bootopts.h"
 
 #include <hal/nrf_gpio.h>
-#include <init.h>
+#include <zephyr/init.h>
 
 #include "platform/gpio.h"
 

@@ -1,5 +1,5 @@
-#include <logging/log.h>
-#include <zephyr.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include "hidenc.h"
 #include "hid_report_struct.h"

@@ -1,15 +1,14 @@
-#include <zephyr.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
-#include <bluetooth/bluetooth.h>
-#include <bluetooth/hci.h>
-#include <bluetooth/conn.h>
-#include <bluetooth/uuid.h>
-#include <bluetooth/gatt.h>
-#include <bluetooth/services/bas.h>
-#include <bluetooth/services/hrs.h>
+#include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/hci.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/uuid.h>
+#include <zephyr/bluetooth/gatt.h>
+#include <zephyr/bluetooth/services/bas.h>
+#include <zephyr/bluetooth/services/hrs.h>
 #include <bluetooth/services/nus.h>
-#include <host/hci_core.h>
-#include <logging/log.h>
 
 LOG_MODULE_DECLARE(transport_bt);
 
@@ -92,7 +91,7 @@ static void advertising_run(struct k_work *work) {
     if (bt_addr_le_cmp(&addr, BT_ADDR_LE_ANY)) {
         // not a BT_ADDR_LE_ANY, start directed advertising
         bt_addr_le_to_str(&addr, addr_str, sizeof(addr_str));
-        LOG_INF("run dir adv to %s", log_strdup(addr_str));
+        LOG_INF("run dir adv to %s", addr_str);
         adv_param = *BT_LE_ADV_CONN_DIR(&addr);
         bt_le_adv_start(&adv_param, NULL, 0, NULL, 0);
     } else {

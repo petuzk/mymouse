@@ -1,9 +1,10 @@
 #include "shell/report.h"
 
 #include <math.h>
-#include <shell/shell.h>
 #include <stdlib.h>
-#include <zephyr.h>
+
+#include <zephyr/kernel.h>
+#include <zephyr/shell/shell.h>
 
 #include "hid_report_struct.h"
 

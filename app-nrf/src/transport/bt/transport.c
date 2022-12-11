@@ -1,11 +1,10 @@
 #include "transport/bt/transport.h"
 
-#include <bluetooth/hci.h>
-#include <bluetooth/services/bas.h>
-#include <host/hci_core.h>
-#include <init.h>
-#include <logging/log.h>
-#include <settings/settings.h>
+#include <zephyr/bluetooth/hci.h>
+#include <zephyr/bluetooth/services/bas.h>
+#include <zephyr/init.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/settings/settings.h>
 
 #include "services/bootopts.h"
 #include "transport/bt/adv.h"

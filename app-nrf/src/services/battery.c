@@ -1,9 +1,10 @@
 #include "services/battery.h"
 
-#include <init.h>
-#include <zephyr.h>
-#include <logging/log.h>
 #include <stdint.h>
+
+#include <zephyr/init.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include "platform/adc.h"
 #include "transport/bt/transport.h"

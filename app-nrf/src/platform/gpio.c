@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include <hal/nrf_gpio.h>
-#include <init.h>
+#include <zephyr/init.h>
 
 const uint32_t button_inputs[] = {
     FOR_EACH(PINOF, (,),

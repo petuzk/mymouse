@@ -1,6 +1,7 @@
-#include <hal/nrf_gpio.h>
-#include <shell/shell.h>
 #include <stdlib.h>
+
+#include <hal/nrf_gpio.h>
+#include <zephyr/shell/shell.h>
 
 #include "platform/adc.h"
 #include "platform/clock_suppl.h"

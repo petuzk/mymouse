@@ -2,7 +2,7 @@
 
 #include <hal/nrf_gpio.h>
 #include <hal/nrf_qdec.h>
-#include <init.h>
+#include <zephyr/init.h>
 
 #define QDEC_PIN(pin_name) DT_PROP(DT_NODELABEL(rotary_encoder), pin_name ## _pin)
 #define A_PIN QDEC_PIN(a)

@@ -9,5 +9,4 @@ target_sources(app
         qdec.c
         shutdown.c
         spi.c
-        thread_respool_workaround.c
 )

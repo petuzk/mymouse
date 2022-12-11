@@ -1,11 +1,11 @@
 #include "platform/spi.h"
 
-#include <devicetree.h>
 #include <hal/nrf_gpio.h>
 #include <hal/nrf_spim.h>
-#include <init.h>
-#include <logging/log.h>
-#include <kernel.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/init.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(spi);
 

@@ -1,8 +1,8 @@
 #include "platform/pwm.h"
 
 #include <hal/nrf_pwm.h>
-#include <init.h>
 #include <stdint.h>
+#include <zephyr/init.h>
 
 #include "platform/gpio.h"
 

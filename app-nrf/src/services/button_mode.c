@@ -1,9 +1,9 @@
 #include "services/button_mode.h"
 
 #include <hal/nrf_gpio.h>
-#include <init.h>
-#include <logging/log.h>
-#include <zephyr.h>
+#include <zephyr/init.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include "platform/gpio.h"
 #include "platform/pwm.h"

@@ -7,13 +7,14 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <shell/shell.h>
-#include <init.h>
-#include <fs/fs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <limits.h>
+
+#include <zephyr/init.h>
+#include <zephyr/fs/fs.h>
+#include <zephyr/shell/shell.h>
 
 /* FAT */
 #ifdef CONFIG_FAT_FILESYSTEM_ELM
@@ -33,8 +34,8 @@ static struct fs_mount_t fatfs_mnt = {
 
 /* LITTLEFS */
 #ifdef CONFIG_FILE_SYSTEM_LITTLEFS
-#include <fs/littlefs.h>
-#include <storage/flash_map.h>
+#include <zephyr/fs/littlefs.h>
+#include <zephyr/storage/flash_map.h>
 
 #ifdef CONFIG_MY_FILE_SYSTEM_SHELL_ENABLE_MOUNT
 FS_LITTLEFS_DECLARE_DEFAULT_CONFIG(lfs_data);
@@ -313,7 +314,7 @@ static int cmd_read(const struct shell *shell, size_t argc, char **argv)
             break;
         }
 
-        shell_fprintf(shell, SHELL_NORMAL, "%08X  ", offset);
+        shell_fprintf(shell, SHELL_NORMAL, "%08lX  ", offset);
 
         for (i = 0; i < read; i++) {
             shell_fprintf(shell, SHELL_NORMAL, "%02X ", buf[i]);

@@ -2,10 +2,10 @@
 
 #include <stdbool.h>
 
-#include <drivers/sensor.h>
 #include <hal/nrf_gpio.h>
-#include <logging/log.h>
-#include <zephyr.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include "devices.h"
 #include "hid_report_struct.h"

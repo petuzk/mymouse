@@ -1,5 +1,6 @@
-#include <shell/shell.h>
 #include <stdlib.h>
+
+#include <zephyr/shell/shell.h>
 
 #include "services/battery.h"
 
