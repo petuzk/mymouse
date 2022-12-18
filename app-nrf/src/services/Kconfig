@@ -5,13 +5,9 @@ config APP_BOOTOPTS_INIT_PRIORITY
     Init priority for boot options detection.
     No dependencies to other services.
 
-config APP_BATTERY_INIT_PRIORITY
-  int "Battery service init priority"
-  default 90
-  help
-    Init priority for battery service.
-    Requires transport to be initialized
-    to send initial battery charge level.
+config APP_BATTERY_MEAS_THREAD_STACK_SIZE
+  int "Battery measurement thread stack size"
+  default 1024
 
 config APP_BATTERY_MEAS_PERIOD_SEC
   int "Battery measurement period (seconds)"

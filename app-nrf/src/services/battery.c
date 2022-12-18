@@ -69,38 +69,45 @@ int battery_charge_level() {
     return (pb->points + ((pa->points - pb->points) * (millivolts - pb->voltage) / (pa->voltage - pb->voltage))) / 100;
 }
 
-static void adc_meas_timer_cb(struct k_timer *timer) {
-    ARG_UNUSED(timer);
-    adc_trigger_measurement();
-}
-
-K_TIMER_DEFINE(adc_meas_timer, adc_meas_timer_cb, NULL);
-
-static void send_meas_result(struct k_work *work) {
-    ARG_UNUSED(work);
-    int err = bt_transport.upd_bat_lvl(battery_charge_level());
-    if (err) {
-        LOG_WRN("upd_bat_val returned %d", err);
-    }
-}
-
-K_WORK_DEFINE(send_meas_result_work, send_meas_result);
+K_SEM_DEFINE(adc_meas_sem, 0, 1);
 
 static void adc_meas_ready() {
     latest_meas_time_ms = k_uptime_get();
-    k_work_submit(&send_meas_result_work);
+    k_sem_give(&adc_meas_sem);
 }
 
-static int battery_init(const struct device* dev) {
-    ARG_UNUSED(dev);
-
-    adc_set_measurement_ready_cb(adc_meas_ready);
-    // start first measurement immediately instead of waiting until it will be called by kernel
+static inline void battery_meas_send() {
     adc_trigger_measurement();
-    // schedule sequential measurements
-    k_timer_start(&adc_meas_timer, K_SECONDS(CONFIG_APP_BATTERY_MEAS_PERIOD_SEC), K_SECONDS(CONFIG_APP_BATTERY_MEAS_PERIOD_SEC));
+    if (k_sem_take(&adc_meas_sem, K_SECONDS(1)) == -EAGAIN) {
+        LOG_WRN("timed out waiting for meas result");
+        return;
+    }
+
+    int level = battery_charge_level();
+    int err = bt_transport.upd_bat_lvl(level);
+    if (err) {
+        LOG_WRN("upd_bat_val returned %d", err);
+        return;
+    }
+
+    LOG_INF("updated level to %d", level);
+}
+
+static int battery_meas_send_thread(void* p1, void* p2, void* p3) {
+    adc_set_measurement_ready_cb(adc_meas_ready);
+
+    while (true) {
+        battery_meas_send();
+        k_sleep(K_SECONDS(CONFIG_APP_BATTERY_MEAS_PERIOD_SEC));
+    }
 
     return 0;
 }
 
-SYS_INIT(battery_init, APPLICATION, CONFIG_APP_BATTERY_INIT_PRIORITY);
+K_THREAD_DEFINE(bat_meas,
+                CONFIG_APP_BATTERY_MEAS_THREAD_STACK_SIZE,
+                battery_meas_send_thread,
+                NULL, NULL, NULL,
+                K_PRIO_PREEMPT(CONFIG_NUM_PREEMPT_PRIORITIES - 1),  // lowest priority
+                0,
+                0);

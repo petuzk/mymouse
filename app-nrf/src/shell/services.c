@@ -18,6 +18,7 @@ static int cmd_battery(const struct shell *shell, size_t argc, char **argv) {
         }
     }
     else if (argc == 2 && !strcmp(argv[1], "measure")) {
+        // todo: this does not really work anymore, the thread is sleeping for a fixed time
         battery_trigger_measurement();
     }
     else {

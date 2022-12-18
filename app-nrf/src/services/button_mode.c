@@ -79,11 +79,9 @@ void check_button_mode() {
 static int button_mode_init(const struct device* dev) {
     ARG_UNUSED(dev);
 
-    while (battery_latest_measure_time_ms() == -1) {
-        // in case battery measurement is not yet ready, wait for it
-        // sleep value is arbitrary, but tested to be long enough to only call sleep once
-        k_usleep(10);
-    }
+    // todo: this is a hack, battery service should be used transparently
+    battery_trigger_measurement();
+    k_usleep(70);
 
     struct led_value led_col;
     int bat_level = battery_charge_level();
