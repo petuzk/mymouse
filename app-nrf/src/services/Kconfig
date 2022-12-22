@@ -9,6 +9,15 @@ config APP_BATTERY_MEAS_THREAD_STACK_SIZE
   int "Battery measurement thread stack size"
   default 1024
 
+config APP_BATTERY_MEAS_THREAD_PRIORITY
+  int "Battery measurement thread priority"
+  default 13
+  help
+    Apparently the priority of this thread has to be
+    higher than the prio of logging or shell_rtt threads.
+    It seems that otherwise this thread is blocked
+    until the shell is connected.
+
 config APP_BATTERY_MEAS_PERIOD_SEC
   int "Battery measurement period (seconds)"
   default 120

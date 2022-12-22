@@ -108,6 +108,6 @@ K_THREAD_DEFINE(bat_meas,
                 CONFIG_APP_BATTERY_MEAS_THREAD_STACK_SIZE,
                 battery_meas_send_thread,
                 NULL, NULL, NULL,
-                K_PRIO_PREEMPT(CONFIG_NUM_PREEMPT_PRIORITIES - 1),  // lowest priority
+                CONFIG_APP_BATTERY_MEAS_THREAD_PRIORITY,
                 0,
                 0);
