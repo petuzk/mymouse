@@ -1,0 +1,11 @@
+choice APP_HID_SINK_CHOICE
+  prompt "HID sink implementation"
+  default APP_HID_SINK_STUB
+
+config APP_HID_SINK_STUB
+  bool "Stub (logging only)"
+
+config APP_HID_SINK_TRANSPORT
+  bool "Directly send to transport"
+
+endchoice
