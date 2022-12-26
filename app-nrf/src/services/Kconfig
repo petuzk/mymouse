@@ -1,3 +1,5 @@
+rsource "hid/Kconfig"
+
 config APP_BOOTOPTS_INIT_PRIORITY
   int "Boot options init priority"
   default 10

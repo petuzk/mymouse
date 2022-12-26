@@ -1,3 +1,5 @@
+add_subdirectory(hid)
+
 target_sources(app
     PRIVATE
         battery.c

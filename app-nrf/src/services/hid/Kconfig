@@ -1,0 +1,7 @@
+config APP_HID_COLLECTOR_THREAD_STACK_SIZE
+  int "HID collector thread stack size"
+  default 1024
+
+config APP_HID_COLLECTOR_THREAD_PRIORITY
+  int "HID collector thread priority"
+  default 0

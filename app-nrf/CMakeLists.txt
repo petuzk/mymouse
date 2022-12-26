@@ -21,3 +21,5 @@ target_include_directories(app
 target_link_libraries(app PRIVATE interface_HID)
 
 add_subdirectory(src)
+
+zephyr_linker_sources(SECTIONS iterables_rom.ld)
