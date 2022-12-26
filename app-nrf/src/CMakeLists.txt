@@ -7,6 +7,5 @@ add_subdirectory(transport)
 target_sources(app
     PRIVATE
         devices.c
-        hidenc.c
         main.c
 )

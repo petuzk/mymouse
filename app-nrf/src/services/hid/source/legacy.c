@@ -1,5 +1,3 @@
-#include "hidenc.h"
-
 #include <stdbool.h>
 
 #include <hal/nrf_gpio.h>
@@ -12,6 +10,8 @@
 #include "platform/gpio.h"
 #include "platform/qdec.h"
 #include "shell/report.h"
+#include "services/hid/collector.h"
+#include "services/hid/source.h"
 #include "transport/transport.h"
 
 LOG_MODULE_REGISTER(hidenc);
@@ -76,22 +76,25 @@ static inline void fill_movement(struct hid_report *report, bool *updated) {
     }
 }
 
-bool hidenc_maybe_update_client(struct transport* transport, struct hid_report* report) {
-    int err = 0;
+static void legacy_polling_report_filler(struct hid_report* report);
+
+HID_SOURCE_REGISTER(hid_src_legacy, legacy_polling_report_filler, 5);  // todo: priority
+
+static void legacy_polling_report_filler(struct hid_report* report) {
     bool updated = false;
+    while (true) {
+        fill_buttons(report, &updated);
+        fill_rotation(report, &updated);
+        fill_movement(report, &updated);
 
-    fill_buttons(report, &updated);
-    fill_rotation(report, &updated);
-    fill_movement(report, &updated);
-
-    if (updated) {
-        if ((err = transport->send(report))) {
-            LOG_WRN("send returned %d", err);
+        if (updated) {
+            // ask the collector to get data from us again
+            hid_collector_notify_data_available(hid_src_legacy);
+            return;
         }
-        clear_non_persistent_data_in_report(report);
-    }
 
-    return updated;
+        k_sleep(K_MSEC(2));
+    }
 }
 
 // todo: hidenc should probably be split & moved to services
@@ -101,6 +104,7 @@ static int hidenc_init(const struct device* dev) {
     ARG_UNUSED(dev);
 
     nrf_gpio_cfg_input(PINOFPROP(optical_sensor, mot_gpios), NRF_GPIO_PIN_NOPULL);
+    hid_collector_notify_data_available(hid_src_legacy);
 
     return 0;
 }
