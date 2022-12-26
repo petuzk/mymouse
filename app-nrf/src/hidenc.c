@@ -76,12 +76,6 @@ static inline void fill_movement(struct hid_report *report, bool *updated) {
     }
 }
 
-static inline void clear_non_persistent_data_in_report(struct hid_report *report) {
-    report->wheel_delta = 0;
-    report->x_delta = 0;
-    report->y_delta = 0;
-}
-
 bool hidenc_maybe_update_client(struct transport* transport, struct hid_report* report) {
     int err = 0;
     bool updated = false;
