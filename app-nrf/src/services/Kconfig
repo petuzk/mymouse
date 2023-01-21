@@ -31,3 +31,11 @@ config APP_BUTTON_MODE_INIT_PRIORITY
     This should be the last step of initialization.
     Successfull boot is signalled to the user with
     current battery level information.
+
+config APP_DEBOUNCE_NUM_SHIFTS
+  int "Value of parameter N, see debounce.c"
+  default 5
+
+config APP_DEBOUNCE_TIMER_PERIOD
+  int "Value of parameter T (in microseconds), see debounce.c"
+  default 1000

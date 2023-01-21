@@ -5,4 +5,5 @@ target_sources(app
         battery.c
         bootopts.c
         button_mode.c
+        debounce.c
 )

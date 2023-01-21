@@ -32,7 +32,7 @@ const uint32_t outputs[] = {
 
 static uint32_t gpio_int_enabled = 0; // bitmask of pins with enabled interrupts
 static uint32_t gpio_int_from_level;  // bitmask of pin levels before sensed edges
-static gpio_edge_cb callbacks[32];
+static gpio_edge_cb callbacks[32] = {};
 
 void gpio_set_edge_cb_mask(uint32_t pinmask, uint32_t from_level, gpio_edge_cb callback) {
     unsigned key = irq_lock();
