@@ -6,6 +6,7 @@
 
 #include "services/hid/types.h"
 #include "services/hid/source.h"
+#include "util/bitmanip.h"
 
 /* The collector thread uses a k_event object to wait on. The event is 32-bit long,
  * i.e. allows to wait for 32 conditions. The first 31 bits are used to ready the thread
@@ -30,7 +31,7 @@ static inline bool hid_collector_is_source_id_enabled(int source_id) {
     if (unlikely(source_id < 0 || source_id >= MAX_NUM_OF_HID_SOURCES)) {
         return false;
     }
-    return (hid_collector_enabled_sources >> source_id) & 1;
+    return BIT_AS_BOOL(hid_collector_enabled_sources, source_id);
 }
 
 static inline bool hid_collector_is_source_enabled(const struct hid_source* source) {

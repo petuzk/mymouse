@@ -5,6 +5,8 @@
 #include <zephyr/arch/common/ffs.h>
 #include <zephyr/sys/util_macro.h>
 
+#define BIT_AS_BOOL(bitmask, bit_pos)  (((bitmask) >> (bit_pos)) & 1)
+
 /**
  * @brief Helper function for iterating over positions of set bits in a bitmask.
  *

@@ -7,7 +7,7 @@
 #include <zephyr/init.h>
 #include <zephyr/irq.h>
 
-#include "util.h"
+#include "util/bitmanip.h"
 
 #define GPIOTE_DT_NODE DT_NODELABEL(gpiote)
 
@@ -70,7 +70,7 @@ static void gpiote_irq_handler() {
     while (interrupts_from) {
         uint32_t pin = get_next_bit_pos(&interrupts_from);
         nrf_gpio_cfg_sense_set(pin, NRF_GPIO_PIN_NOSENSE);
-        callbacks[pin](pin, (levels >> pin) & 1);
+        callbacks[pin](pin, BIT_AS_BOOL(levels, pin));
     }
 }
 

@@ -9,7 +9,7 @@
 #include "hid_report_struct.h"
 #include "services/hid/types.h"
 #include "services/hid/sink.h"
-#include "util.h"
+#include "util/bitmanip.h"
 
 LOG_MODULE_REGISTER(hid_collector);
 
