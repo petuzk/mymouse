@@ -11,7 +11,9 @@
  *              and is passed as string to @c hid_source::name
  * @param _report_filler Passed to @c hid_source::report_filler
  * @param _priority Priority of a HID source (lower number is higher priority),
- *                  defines the order of report filling
+ *                  defines the order of report filling. It is recommended to
+ *                  assign sources with long-running fillers a higher priority
+ *                  so that other sources can collect up-to-date data.
  */
 #define HID_SOURCE_REGISTER(_name, _report_filler, _priority) \
     /* this name is constructed so that the linker-generated list will be sorted by priority */ \

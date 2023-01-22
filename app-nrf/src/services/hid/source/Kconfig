@@ -1,0 +1,8 @@
+config APP_HID_SOURCE_INIT_PRIORITY
+  int "HID sources init priority (shared)"
+  default 15
+
+config APP_HID_SOURCE_LEGACY_PRIORITY
+  int "Legacy HID source priority"
+  range 0 9
+  default 1

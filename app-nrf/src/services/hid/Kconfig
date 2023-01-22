@@ -1,4 +1,5 @@
 rsource "sink/Kconfig"
+rsource "source/Kconfig"
 
 config APP_HID_COLLECTOR_THREAD_STACK_SIZE
   int "HID collector thread stack size"

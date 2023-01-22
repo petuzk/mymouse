@@ -77,24 +77,20 @@ static inline void fill_movement(struct hid_report *report, bool *updated) {
 }
 
 static void legacy_polling_report_filler(struct hid_report* report);
-
-HID_SOURCE_REGISTER(hid_src_legacy, legacy_polling_report_filler, 5);  // todo: priority
+HID_SOURCE_REGISTER(hid_src_legacy, legacy_polling_report_filler, CONFIG_APP_HID_SOURCE_LEGACY_PRIORITY);
 
 static void legacy_polling_report_filler(struct hid_report* report) {
     bool updated = false;
-    while (true) {
-        fill_buttons(report, &updated);
-        fill_rotation(report, &updated);
-        fill_movement(report, &updated);
+    fill_buttons(report, &updated);
+    fill_rotation(report, &updated);
+    fill_movement(report, &updated);
 
-        if (updated) {
-            // ask the collector to get data from us again
-            hid_collector_notify_data_available(hid_src_legacy);
-            return;
-        }
-
+    if (!updated) {
         k_sleep(K_MSEC(2));
     }
+
+    // ask the collector to get data from us again
+    hid_collector_notify_data_available(hid_src_legacy);
 }
 
 // todo: hidenc should probably be split & moved to services
@@ -109,4 +105,4 @@ static int hidenc_init(const struct device* dev) {
     return 0;
 }
 
-SYS_INIT(hidenc_init, APPLICATION, 0);
+SYS_INIT(hidenc_init, APPLICATION, CONFIG_APP_HID_SOURCE_INIT_PRIORITY);

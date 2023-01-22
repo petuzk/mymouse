@@ -18,3 +18,8 @@ config APP_SHELL_SERVICES
 config APP_SHELL_HID_SRC_COLL
   bool "Enable HID sources & collector shell"
   default false
+
+config APP_HID_SOURCE_SHELL_PRIORITY
+  int "Shell HID source priority"
+  default 7
+  range 0 9

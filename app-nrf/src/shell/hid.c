@@ -40,7 +40,7 @@ static void shell_report_filler(struct hid_report* report) {
     pending_report.y_delta = 0;
 }
 
-HID_SOURCE_REGISTER(hid_src_shell, shell_report_filler, 5);  // todo: priority
+HID_SOURCE_REGISTER(hid_src_shell, shell_report_filler, CONFIG_APP_HID_SOURCE_SHELL_PRIORITY);
 
 // actual commands
 
