@@ -16,21 +16,6 @@
 
 LOG_MODULE_REGISTER(hidenc);
 
-static inline void fill_buttons(struct hid_report *report, bool *updated) {
-    static const uint32_t btn_port_mask = \
-        BIT(PINOF(button_left)) | BIT(PINOF(button_right)) | BIT(PINOF(button_middle));
-    static uint32_t prev_port_state = 0;
-    uint32_t port_state = ~(nrf_gpio_port_in_read(NRF_GPIO) & btn_port_mask);
-
-    if (port_state != prev_port_state) {
-        *updated = true;
-        prev_port_state = port_state;
-        report->buttons.s.left   = (port_state >> PINOF(button_left)) & 1;
-        report->buttons.s.right  = (port_state >> PINOF(button_right)) & 1;
-        report->buttons.s.middle = (port_state >> PINOF(button_middle)) & 1;
-    }
-}
-
 static inline void fill_rotation(struct hid_report *report, bool *updated) {
     static int acc = 0;
 
@@ -81,7 +66,6 @@ HID_SOURCE_REGISTER(hid_src_legacy, legacy_polling_report_filler, CONFIG_APP_HID
 
 static void legacy_polling_report_filler(struct hid_report* report) {
     bool updated = false;
-    fill_buttons(report, &updated);
     fill_rotation(report, &updated);
     fill_movement(report, &updated);
 

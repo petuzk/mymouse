@@ -12,16 +12,17 @@
 #define GPIOTE_DT_NODE DT_NODELABEL(gpiote)
 
 const uint32_t button_inputs[] = {
-    FOR_EACH(PINOF, (,),
-        button_left,
-        button_right,
-        button_middle,
-        button_spec,
-        button_center,
-        button_up,
-        button_down,
-        button_fwd,
-        button_bwd),
+    FOR_EACH(PINOF, (,)
+        ,button_left
+        ,button_right
+        ,button_middle
+        ,button_spec
+        ,button_center
+        ,button_up
+        ,button_down
+        ,button_fwd
+        ,button_bwd
+    ),
 };
 
 const uint32_t outputs[] = {
