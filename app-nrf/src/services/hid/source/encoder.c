@@ -2,19 +2,19 @@
 #include <zephyr/kernel.h>
 
 #include "platform/qdec.h"
-#include "services/hid/source.h"
 #include "services/hid/collector.h"
+#include "services/hid/source.h"
 
 static int delta = 0;
 
-static void hid_producer_encoder_report_filler(struct hid_report *report) {
+static void hid_src_encoder_report_filler(struct hid_report* report) {
     unsigned key = irq_lock();
     report->wheel_delta = delta;
     delta = 0;
     irq_unlock(key);
 }
 
-HID_SOURCE_REGISTER(hid_src_encoder, hid_producer_encoder_report_filler, CONFIG_APP_HID_SOURCE_ENCODER_PRIORITY);
+HID_SOURCE_REGISTER(hid_src_encoder, hid_src_encoder_report_filler, CONFIG_APP_HID_SOURCE_ENCODER_PRIORITY);
 
 static void hid_src_encoder_qdec_data_callback(int value) {
     // every second click should increment the delta

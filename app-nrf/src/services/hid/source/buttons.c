@@ -8,8 +8,8 @@
 
 #include "platform/gpio.h"
 #include "services/debounce.h"
-#include "services/hid/source.h"
 #include "services/hid/collector.h"
+#include "services/hid/source.h"
 #include "util/toggle_queue.h"
 
 LOG_MODULE_REGISTER(hid_src_buttons);
@@ -52,10 +52,10 @@ static inline struct toggle_queue* queue_for_pin(uint32_t pin) {
     return NULL;
 }
 
-static void hid_producer_buttons_report_filler(struct hid_report* report);
-HID_SOURCE_REGISTER(hid_src_buttons, hid_producer_buttons_report_filler, CONFIG_APP_HID_SOURCE_BUTTONS_PRIORITY);
+static void hid_src_buttons_report_filler(struct hid_report* report);
+HID_SOURCE_REGISTER(hid_src_buttons, hid_src_buttons_report_filler, CONFIG_APP_HID_SOURCE_BUTTONS_PRIORITY);
 
-static void hid_producer_buttons_report_filler(struct hid_report* report) {
+static void hid_src_buttons_report_filler(struct hid_report* report) {
     report->buttons.s.left   = toggle_queue_get_or_last(queue_for_pin(PINOF(button_left)));
     report->buttons.s.right  = toggle_queue_get_or_last(queue_for_pin(PINOF(button_right)));
     report->buttons.s.middle = toggle_queue_get_or_last(queue_for_pin(PINOF(button_middle)));
