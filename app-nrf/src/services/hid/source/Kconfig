@@ -12,7 +12,7 @@ config APP_HID_SOURCE_ENCODER_PRIORITY
   range 0 9
   default 5
 
-config APP_HID_SOURCE_LEGACY_PRIORITY
-  int "Legacy HID source priority"
+config APP_HID_SOURCE_OPT_SENSOR_PRIORITY
+  int "Optical sensor HID source priority"
   range 0 9
   default 1
