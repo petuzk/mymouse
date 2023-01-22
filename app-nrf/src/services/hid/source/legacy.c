@@ -16,29 +16,6 @@
 
 LOG_MODULE_REGISTER(hidenc);
 
-static inline void fill_rotation(struct hid_report *report, bool *updated) {
-    static int acc = 0;
-
-#ifdef CONFIG_APP_SHELL_HID_REPORT
-    if (report_shell_fill_rotation(report)) {
-        *updated = true;
-        return;
-    }
-#endif
-
-    int value = qdec_read_acc();
-
-    if (value) {
-        acc += value;
-        int delta = acc / 2;
-        if (delta) {
-            *updated = true;
-            report->wheel_delta = delta;
-            acc = acc % 2;
-        }
-    }
-}
-
 static inline void fill_movement(struct hid_report *report, bool *updated) {
     struct sensor_value value;
 
@@ -66,7 +43,6 @@ HID_SOURCE_REGISTER(hid_src_legacy, legacy_polling_report_filler, CONFIG_APP_HID
 
 static void legacy_polling_report_filler(struct hid_report* report) {
     bool updated = false;
-    fill_rotation(report, &updated);
     fill_movement(report, &updated);
 
     if (!updated) {

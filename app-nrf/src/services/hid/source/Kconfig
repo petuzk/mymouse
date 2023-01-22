@@ -7,6 +7,11 @@ config APP_HID_SOURCE_BUTTONS_PRIORITY
   range 0 9
   default 3
 
+config APP_HID_SOURCE_ENCODER_PRIORITY
+  int "Encoder HID source priority"
+  range 0 9
+  default 5
+
 config APP_HID_SOURCE_LEGACY_PRIORITY
   int "Legacy HID source priority"
   range 0 9
