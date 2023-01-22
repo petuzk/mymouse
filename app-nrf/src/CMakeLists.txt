@@ -3,8 +3,3 @@ add_subdirectory(platform)
 add_subdirectory(services)
 add_subdirectory(shell)
 add_subdirectory(transport)
-
-target_sources(app
-    PRIVATE
-        main.c
-)

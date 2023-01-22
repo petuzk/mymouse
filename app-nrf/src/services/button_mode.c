@@ -1,5 +1,3 @@
-#include "services/button_mode.h"
-
 #include <hal/nrf_gpio.h>
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
@@ -9,6 +7,7 @@
 #include "platform/pwm.h"
 #include "platform/shutdown.h"
 #include "services/battery.h"
+#include "services/debounce.h"
 
 #define SHORT_FADE_MS 60
 #define LONG_FADE_MS  500
@@ -40,29 +39,19 @@ static void lifecycle_timer_cb(struct k_timer *timer) {
 
 K_TIMER_DEFINE(lifecycle_timer, lifecycle_timer_cb, NULL);
 
-void check_button_mode() {
-    static int prev_btn_state = 0;
-    int btn_state = nrf_gpio_pin_read(PINOF(button_mode));
-
-    // if button state did not change, nothing to do
-    if (btn_state == prev_btn_state) {
-        return;
-    }
-
-    prev_btn_state = btn_state;
-
+static void button_mode_gpio_callback(uint32_t pin, bool new_value) {
     if (lifecycle_state == freshly_booted) {
         int timer_running = k_timer_remaining_get(&lifecycle_timer);
-        if (btn_state == 1 && !timer_running) {
+        if (new_value && !timer_running) {
             // button released, schedule led fade off if not scheduled yet
-            k_timer_start(&lifecycle_timer, K_SECONDS(3), K_NO_WAIT);
+            k_timer_start(&lifecycle_timer, K_SECONDS(3), K_FOREVER);
         }
     }
     else if (lifecycle_state == normal_operation) {
-        if (btn_state == 0) {
+        if (!new_value) {
             // button pressed, shutdown will be triggered
             // unless timer will be stopped before timeout by button release
-            k_timer_start(&lifecycle_timer, K_MSEC(CONFIG_POWER_ON_OFF_HOLD_TIME), K_NO_WAIT);
+            k_timer_start(&lifecycle_timer, K_MSEC(CONFIG_POWER_ON_OFF_HOLD_TIME), K_FOREVER);
         } else {
             // button released before timeout, stop timer
             k_timer_stop(&lifecycle_timer);
@@ -74,6 +63,8 @@ void check_button_mode() {
         k_msleep(SHORT_FADE_MS); // wait for led to turn off and debounce to not trigger boot immediately
         shutdown();
     }
+
+    debounce_set_edge_cb(pin, button_mode_gpio_callback);
 }
 
 static int button_mode_init(const struct device* dev) {
@@ -95,6 +86,9 @@ static int button_mode_init(const struct device* dev) {
     }
 
     pwm_schedule_sequence_from_zero(led_col, SHORT_FADE_MS);
+
+    // handle current button state and configure interrupt
+    button_mode_gpio_callback(PINOF(button_mode), nrf_gpio_pin_read(PINOF(button_mode)));
 
     return 0;
 }
