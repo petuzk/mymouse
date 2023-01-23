@@ -14,6 +14,9 @@
 
 #define MOT_PIN PINOFPROP(optical_sensor, mot_gpios)
 
+static void hid_src_opt_sensor_report_filler(struct hid_report* report);
+HID_SOURCE_REGISTER(hid_src_opt_sensor, hid_src_opt_sensor_report_filler, APP_HID_SOURCE_OPT_SENSOR_PRIORITY);
+
 static void hid_src_opt_sensor_report_filler(struct hid_report* report) {
     const struct device* sensor = DEVICE_DT_GET(DT_NODELABEL(optical_sensor));
     struct sensor_value value;
@@ -23,9 +26,14 @@ static void hid_src_opt_sensor_report_filler(struct hid_report* report) {
     report->x_delta = value.val1;
     sensor_channel_get(sensor, SENSOR_CHAN_POS_DY, &value);
     report->y_delta = -value.val1;
-}
 
-HID_SOURCE_REGISTER(hid_src_opt_sensor, hid_src_opt_sensor_report_filler, APP_HID_SOURCE_OPT_SENSOR_PRIORITY);
+    // normally motion detect pin is put high (inactive) in the middle of SPI transaction,
+    // to be exact after reading the first bit of the second byte from motion burst register
+    // sometimes however it is still held low after transaction, so request another one
+    if (!nrf_gpio_pin_read(MOT_PIN)) {
+        hid_collector_notify_data_available(hid_src_opt_sensor);
+    }
+}
 
 static void hid_src_opt_sensor_gpio_cb(uint32_t pin, bool new_value) {
     // motion detect pin is active low
