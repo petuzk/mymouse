@@ -28,12 +28,16 @@ static void lifecycle_timer_cb(struct k_timer *timer) {
         // it is done once, so change state after that
         pwm_schedule_sequence_from_last((struct led_value) {0, 0}, LONG_FADE_MS);
         lifecycle_state = normal_operation;
-    } else {
-        // otherwise this timer is used to wait for button being held
+    }
+    else if (lifecycle_state == normal_operation) {
+        // this timer is used to wait for button being held
         // if it is held long enough, shutdown must be performed
         // here we indicate that shutdown is ready, actual shutdown is performed on button release
         pwm_schedule_sequence_from_zero((struct led_value) {80, 0}, SHORT_FADE_MS);
         lifecycle_state = waiting_for_shutdown;
+    }
+    else if (lifecycle_state == waiting_for_shutdown) {
+        shutdown();
     }
 }
 
@@ -60,8 +64,8 @@ static void button_mode_gpio_callback(uint32_t pin, bool new_value) {
     else if (lifecycle_state == waiting_for_shutdown) {
         // button released after shutdown ready indication, shutdown
         pwm_schedule_sequence_from_last((struct led_value) {0, 0}, SHORT_FADE_MS);
-        k_msleep(SHORT_FADE_MS); // wait for led to turn off and debounce to not trigger boot immediately
-        shutdown();
+        // wait for led to turn off and debounce to not trigger boot immediately
+        k_timer_start(&lifecycle_timer, K_MSEC(SHORT_FADE_MS), K_FOREVER);
     }
 
     debounce_set_edge_cb(pin, button_mode_gpio_callback);
