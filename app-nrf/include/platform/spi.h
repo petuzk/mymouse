@@ -1,40 +1,52 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <hal/nrf_spim.h>
 #include <zephyr/kernel.h>
 
-// stolen from zephyr/drivers/spi/spi_nrfx_spim.c
-// static inline is verified to be computed & inlined in each compilation unit
-static inline nrf_spim_frequency_t get_nrf_spim_frequency(uint32_t frequency)
-{
-    if (frequency < 250000) {
-        return NRF_SPIM_FREQ_125K;
-    } else if (frequency < 500000) {
-        return NRF_SPIM_FREQ_250K;
-    } else if (frequency < 1000000) {
-        return NRF_SPIM_FREQ_500K;
-    } else if (frequency < 2000000) {
-        return NRF_SPIM_FREQ_1M;
-    } else if (frequency < 4000000) {
-        return NRF_SPIM_FREQ_2M;
-    } else if (frequency < 8000000) {
-        return NRF_SPIM_FREQ_4M;
-    } else {
-        return NRF_SPIM_FREQ_8M;
-    }
-}
+struct spi_configuration {
+    nrf_spim_mode_t op_mode;
+    nrf_spim_bit_order_t bit_order;
+    nrf_spim_frequency_t freq;
 
-static inline void spi_configure(nrf_spim_mode_t op_mode, nrf_spim_bit_order_t bit_order, nrf_spim_frequency_t freq) {
-    nrf_spim_configure(NRF_SPIM0, op_mode, bit_order);
-    nrf_spim_frequency_set(NRF_SPIM0, freq);
-}
+    /// If true, subsequent calls to spi_configure() with the same pointer will have no effect
+    bool is_const;
+};
 
-extern struct k_sem spi_sem;
+struct spi_transfer_spec {
+    void* tx_buf;
+    uint32_t tx_len;
+    void* rx_buf;
+    uint32_t rx_len;
+};
 
-static inline bool spi_transfer_in_progress() {
-    return k_sem_count_get(&spi_sem) == 0;
-}
+// adapted from zephyr/drivers/spi/spi_nrfx_spim.c
+#define SPI_CONFIG_FREQUENCY(frequencyHz) \
+    (frequencyHz) < 250000 ? NRF_SPIM_FREQ_125K : (\
+    (frequencyHz) < 500000 ? NRF_SPIM_FREQ_250K : (\
+    (frequencyHz) < 1000000 ? NRF_SPIM_FREQ_500K : (\
+    (frequencyHz) < 2000000 ? NRF_SPIM_FREQ_1M : (\
+    (frequencyHz) < 4000000 ? NRF_SPIM_FREQ_2M : (\
+    (frequencyHz) < 8000000 ? NRF_SPIM_FREQ_4M : NRF_SPIM_FREQ_8M)))))
 
-int spi_transceive(void* tx_buf, uint32_t tx_len, void* rx_buf, uint32_t rx_len, void (*callback)());
+/**
+ * @brief Obtain SPI lock (i.e. lock the mutex).
+ * A thread may only call other SPI functions with lock obtained.
+ *
+ * @param timeout Timeout passed to k_mutex_lock
+ * @return 0 on success, negative error code otherwise
+ */
+int spi_lock(k_timeout_t timeout);
+
+/**
+ * @brief Unlock SPI mutex.
+
+ * @return 0 on success, negative error code otherwise
+ */
+int spi_unlock();
+
+int spi_configure(const struct spi_configuration* config);
+int spi_transceive(const struct spi_transfer_spec* spec, void (*callback)());
+int spi_transceive_sync(struct spi_transfer_spec* spec);

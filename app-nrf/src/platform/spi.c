@@ -1,5 +1,8 @@
 #include "platform/spi.h"
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include <hal/nrf_gpio.h>
 #include <hal/nrf_spim.h>
 #include <zephyr/devicetree.h>
@@ -14,19 +17,90 @@ LOG_MODULE_REGISTER(spi);
 #define MOSI_PIN  DT_PROP(SPIM_NODE, mosi_pin)
 #define MISO_PIN  DT_PROP(SPIM_NODE, miso_pin)
 
-K_SEM_DEFINE(spi_sem, 1, 1);
-
 struct {
     void (*callback)();
-} spi_ctx = {};
+} spi_isr_ctx = {};
+
+K_MUTEX_DEFINE(spi_mutex);
+static bool is_in_spi_isr = false;
+
+// truth table:
+//   ISR  |  SPI ISR  |   owner   |  error
+//    y   |     y     |     -     |    n
+//    y   |     n     |     -     |    y
+//    n   |     -     |  current  |    n
+//    n   |     -     |   other   |    y
+
+#define CHECK_LOCK_OWNED() if (k_is_in_isr() ? !is_in_spi_isr : k_current_get() != spi_mutex.owner) return -EPERM
+
+int spi_lock(k_timeout_t timeout) {
+    return k_mutex_lock(&spi_mutex, timeout);
+}
+
+int spi_unlock() {
+    // k_mutex_unlock returns an error if the lock is not owned by this thread, no need to CHECK_LOCK_OWNED
+    return k_mutex_unlock(&spi_mutex);
+}
+
+int spi_configure(const struct spi_configuration* config) {
+    CHECK_LOCK_OWNED();
+
+    static const struct spi_configuration* prev_config = NULL;
+    if (config->is_const && config == prev_config) {
+        return 0;
+    }
+
+    nrf_spim_configure(NRF_SPIM0, config->op_mode, config->bit_order);
+    nrf_spim_frequency_set(NRF_SPIM0, config->freq);
+    prev_config = config;
+
+    return 0;
+}
+
+static inline bool is_addr_in_ram(const void* ptr)
+{
+    return ((((uint32_t)ptr) & 0xE0000000u) == 0x20000000u);
+}
+
+int spi_transceive(const struct spi_transfer_spec* spec, void (*callback)()) {
+    CHECK_LOCK_OWNED();
+
+    if ((spec->tx_buf != NULL && !is_addr_in_ram(spec->tx_buf)) || (spec->rx_buf != NULL && !is_addr_in_ram(spec->rx_buf))) {
+        LOG_ERR("buf not in ram");
+        return -EINVAL;
+    }
+
+    spi_isr_ctx.callback = callback;
+
+    nrf_spim_tx_buffer_set(NRF_SPIM0, spec->tx_buf, spec->tx_len);
+    nrf_spim_rx_buffer_set(NRF_SPIM0, spec->rx_buf, spec->rx_len);
+    nrf_spim_event_clear(NRF_SPIM0, NRF_SPIM_EVENT_END);
+    nrf_spim_task_trigger(NRF_SPIM0, NRF_SPIM_TASK_START);
+
+    return 0;
+}
+
+K_SEM_DEFINE(spi_sync_sem, 0, 1);
+
+static void spi_transceive_sync_callback() {
+    k_sem_give(&spi_sync_sem);
+}
+
+int spi_transceive_sync(struct spi_transfer_spec* spec) {
+    int err = spi_transceive(spec, spi_transceive_sync_callback);
+    if (err) {
+        return err;
+    }
+    return k_sem_take(&spi_sync_sem, K_FOREVER);
+}
 
 static void spi_irq_handler() {
     // irq is called on END event only
     nrf_spim_event_clear(NRF_SPIM0, NRF_SPIM_EVENT_END);
-    // give sem before calling callback so that it can start new xfer
-    k_sem_give(&spi_sem);
-    if (spi_ctx.callback) {
-        spi_ctx.callback();
+    if (spi_isr_ctx.callback) {
+        is_in_spi_isr = true;
+        spi_isr_ctx.callback();
+        is_in_spi_isr = false;
     }
 }
 
@@ -48,32 +122,6 @@ static int spi_init(const struct device* dev) {
     nrf_spim_int_enable(NRF_SPIM0, NRF_SPIM_INT_END_MASK);
     IRQ_CONNECT(DT_IRQN(SPIM_NODE), DT_IRQ(SPIM_NODE, priority), spi_irq_handler, NULL, 0);
     irq_enable(DT_IRQN(SPIM_NODE));
-
-    return 0;
-}
-
-static inline bool is_addr_in_ram(const void* ptr)
-{
-    return ((((uint32_t)ptr) & 0xE0000000u) == 0x20000000u);
-}
-
-int spi_transceive(void* tx_buf, uint32_t tx_len, void* rx_buf, uint32_t rx_len, void (*callback)()) {
-    if ((tx_buf != NULL && !is_addr_in_ram(tx_buf)) || (rx_buf != NULL && !is_addr_in_ram(rx_buf))) {
-        LOG_ERR("buf not in ram");
-        return -EINVAL;
-    }
-
-    if (k_sem_take(&spi_sem, K_NO_WAIT) != 0) {
-        LOG_ERR("busy");
-        return -EBUSY;
-    }
-
-    spi_ctx.callback = callback;
-
-    nrf_spim_tx_buffer_set(NRF_SPIM0, tx_buf, tx_len);
-    nrf_spim_rx_buffer_set(NRF_SPIM0, rx_buf, rx_len);
-    nrf_spim_event_clear(NRF_SPIM0, NRF_SPIM_EVENT_END);
-    nrf_spim_task_trigger(NRF_SPIM0, NRF_SPIM_TASK_START);
 
     return 0;
 }

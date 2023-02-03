@@ -1,5 +1,6 @@
 #include "drivers/adns7530.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <errno.h>
@@ -24,6 +25,13 @@ LOG_MODULE_REGISTER(adns7530);
 #define CS_PIN      (DT_INST_SPI_DEV_CS_GPIOS_PIN(0))
 #define CS_INACTIVE (DT_INST_SPI_DEV_CS_GPIOS_FLAGS(0) & 1)  // bit 1 determines inactive state value (see GPIO_ACTIVE_LOW)
 
+const static struct spi_configuration adns7530_spi_config = {
+    .op_mode = ADNS7530_SPI_MODE,
+    .bit_order = ADNS7530_SPI_BITORD,
+    .freq = SPI_CONFIG_FREQUENCY(DT_INST_PROP(0, spi_max_frequency)),
+    .is_const = true,
+};
+
 static struct {
     int err;
     int rx_len;
@@ -36,9 +44,9 @@ static void adns7530_spi_done_callback() {
     if (adns7530_spi_cb_ctx.rx_buf) {
         // the SPI task/event latency is about 6 us in total, and rescheduling another transaction takes ~5us
         // the total latency is more than required delay t_{SRAD} = 4us, so no additional delay needed
-        adns7530_spi_cb_ctx.err = spi_transceive(
-            NULL, 0, adns7530_spi_cb_ctx.rx_buf, adns7530_spi_cb_ctx.rx_len, adns7530_spi_done_callback);
+        struct spi_transfer_spec spec = {NULL, 0, adns7530_spi_cb_ctx.rx_buf, adns7530_spi_cb_ctx.rx_len};
         adns7530_spi_cb_ctx.rx_buf = NULL;
+        adns7530_spi_cb_ctx.err = spi_transceive(&spec, adns7530_spi_done_callback);
         if (!adns7530_spi_cb_ctx.err) {
             return;  // wait for callback from second transaction
         }
@@ -46,7 +54,21 @@ static void adns7530_spi_done_callback() {
     k_sem_give(&adns7530_spi_transfer_end);
 }
 
-static inline int adns7530_spi_transceive(void* tx_buf, uint32_t tx_len, void* rx_buf, uint32_t rx_len) {
+static int adns7530_spi_transceive(void* tx_buf, uint32_t tx_len, void* rx_buf, uint32_t rx_len) {
+    int err;
+
+    err = spi_lock(K_SECONDS(5));
+    if (unlikely(err)) {
+        LOG_ERR("can't obtain spi lock: error %d", err);
+        goto exit;
+    }
+
+    err = spi_configure(&adns7530_spi_config);
+    if (unlikely(err)) {
+        LOG_ERR("can't configure spi: error %d", err);
+        goto exit;
+    }
+
     nrf_gpio_pin_write(CS_PIN, !CS_INACTIVE);
 
     adns7530_spi_cb_ctx.err = 0;
@@ -54,7 +76,8 @@ static inline int adns7530_spi_transceive(void* tx_buf, uint32_t tx_len, void* r
     adns7530_spi_cb_ctx.rx_buf = rx_buf;
     k_sem_reset(&adns7530_spi_transfer_end);
 
-    int err = spi_transceive(tx_buf, tx_len, NULL, 0, adns7530_spi_done_callback);
+    struct spi_transfer_spec spec = {tx_buf, tx_len, NULL, 0};
+    err = spi_transceive(&spec, adns7530_spi_done_callback);
     if (unlikely(err)) {
         LOG_ERR("can't start spi tx transfer: error %d", err);
         goto exit;
@@ -80,10 +103,12 @@ static inline int adns7530_spi_transceive(void* tx_buf, uint32_t tx_len, void* r
         // if we are writing to the device, we should wait t_{SCLK-NCS} = 20us "for valid MOSI data transfer"
         // in practive, however, SPI task/event latency + thread resuming takes about 14us
         // so waiting for another 10 us should be sufficient (btw seems to work even without this delay)
-        k_busy_wait(10);
+        k_usleep(10);
     }
+
 exit:
     nrf_gpio_pin_write(CS_PIN, CS_INACTIVE);
+    spi_unlock();
     return err;
 }
 
@@ -108,9 +133,6 @@ static inline int adns7530_reg_write(uint8_t reg, uint8_t value) {
 static int adns7530_init(const struct device *dev) {
     nrf_gpio_pin_write(CS_PIN, CS_INACTIVE);
     nrf_gpio_cfg_output(CS_PIN);
-
-    // at the moment this sensor is the only device using spi bus, so configure the bus straight away
-    spi_configure(ADNS7530_SPI_MODE, ADNS7530_SPI_BITORD, get_nrf_spim_frequency(DT_INST_PROP(0, spi_max_frequency)));
 
     adns7530_reg_write(ADNS7530_REG_POWER_UP_RESET, ADNS7530_RESET_VALUE);
     k_msleep(10);
