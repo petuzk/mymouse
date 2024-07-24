@@ -36,38 +36,38 @@
 #ifndef _BOOTLOADERHID_H_
 #define _BOOTLOADERHID_H_
 
-	/* Includes: */
-		#include <avr/io.h>
-		#include <avr/wdt.h>
-		#include <avr/boot.h>
-		#include <avr/power.h>
-		#include <avr/interrupt.h>
-		#include <util/atomic.h>
-		#include <util/delay.h>
-		#include <stdbool.h>
+    /* Includes: */
+        #include <avr/io.h>
+        #include <avr/wdt.h>
+        #include <avr/boot.h>
+        #include <avr/power.h>
+        #include <avr/interrupt.h>
+        #include <util/atomic.h>
+        #include <util/delay.h>
+        #include <stdbool.h>
 
-		#include "Descriptors.h"
+        #include "Descriptors.h"
 
-		#include <LUFA/Drivers/USB/USB.h>
-		#include <LUFA/Platform/Platform.h>
+        #include <LUFA/Drivers/USB/USB.h>
+        #include <LUFA/Platform/Platform.h>
 
-	/* Preprocessor Checks: */
-		#if !defined(__OPTIMIZE_SIZE__)
-			#error This bootloader requires that it be optimized for size, not speed, to fit into the target device. Change optimization settings and try again.
-		#endif
+    /* Preprocessor Checks: */
+        #if !defined(__OPTIMIZE_SIZE__)
+            #error This bootloader requires that it be optimized for size, not speed, to fit into the target device. Change optimization settings and try again.
+        #endif
 
-	/* Macros: */
-		/** Bootloader special address to start the user application */
-		#define COMMAND_STARTAPPLICATION   0xFFFF
+    /* Macros: */
+        /** Bootloader special address to start the user application */
+        #define COMMAND_STARTAPPLICATION   0xFFFF
 
-		/** Magic bootloader key to unlock forced application start mode. */
-		#define MAGIC_BOOT_KEY             0xDC42
+        /** Magic bootloader key to unlock forced application start mode. */
+        #define MAGIC_BOOT_KEY             0xDC42
 
-	/* Function Prototypes: */
-		static void SetupHardware(void);
+    /* Function Prototypes: */
+        static void SetupHardware(void);
 
-		void Application_Jump_Check(void) ATTR_INIT_SECTION(3);
+        void Application_Jump_Check(void) ATTR_INIT_SECTION(3);
 
-		void EVENT_USB_Device_ConfigurationChanged(void);
+        void EVENT_USB_Device_ConfigurationChanged(void);
 
 #endif

@@ -55,18 +55,18 @@ uint16_t MagicBootKey ATTR_NO_INIT;
  */
 void Application_Jump_Check(void)
 {
-	/* If the reset source was the bootloader and the key is correct, clear it and jump to the application */
-	if ((MCUSR & (1 << WDRF)) && (MagicBootKey == MAGIC_BOOT_KEY))
-	{
-		/* Turn off the watchdog */
-		MCUSR &= ~(1 << WDRF);
-		wdt_disable();
+    /* If the reset source was the bootloader and the key is correct, clear it and jump to the application */
+    if ((MCUSR & (1 << WDRF)) && (MagicBootKey == MAGIC_BOOT_KEY))
+    {
+        /* Turn off the watchdog */
+        MCUSR &= ~(1 << WDRF);
+        wdt_disable();
 
-		/* Clear the boot key and jump to the user application */
-		MagicBootKey = 0;
+        /* Clear the boot key and jump to the user application */
+        MagicBootKey = 0;
 
-		((void (*)(void))0x0000)();
-	}
+        ((void (*)(void))0x0000)();
+    }
 }
 
 /** Main program entry point. This routine configures the hardware required by the bootloader, then continuously
@@ -74,39 +74,39 @@ void Application_Jump_Check(void)
  */
 int main(void)
 {
-	/* Setup hardware required for the bootloader */
-	SetupHardware();
+    /* Setup hardware required for the bootloader */
+    SetupHardware();
 
-	/* Enable global interrupts so that the USB stack can function */
-	GlobalInterruptEnable();
+    /* Enable global interrupts so that the USB stack can function */
+    GlobalInterruptEnable();
 
-	while (RunBootloader)
-	  USB_USBTask();
+    while (RunBootloader)
+      USB_USBTask();
 
-	/* Wait a short time to end all USB transactions and then disconnect */
-	_delay_us(1000);
+    /* Wait a short time to end all USB transactions and then disconnect */
+    _delay_us(1000);
 
-	/* Disconnect from the host - USB interface will be reset later along with the AVR */
-	USB_Detach();
+    /* Disconnect from the host - USB interface will be reset later along with the AVR */
+    USB_Detach();
 
-	/* Unlock the forced application start mode of the bootloader if it is restarted */
-	MagicBootKey = MAGIC_BOOT_KEY;
+    /* Unlock the forced application start mode of the bootloader if it is restarted */
+    MagicBootKey = MAGIC_BOOT_KEY;
 
-	/* Enable the watchdog and force a timeout to reset the AVR */
-	wdt_enable(WDTO_250MS);
+    /* Enable the watchdog and force a timeout to reset the AVR */
+    wdt_enable(WDTO_250MS);
 
-	for (;;);
+    for (;;);
 }
 
 /** Configures all hardware required for the bootloader. */
 static void SetupHardware(void)
 {
-	/* Relocate the interrupt vector table to the bootloader section */
-	MCUCR = (1 << IVCE);
-	MCUCR = (1 << IVSEL);
+    /* Relocate the interrupt vector table to the bootloader section */
+    MCUCR = (1 << IVCE);
+    MCUCR = (1 << IVSEL);
 
-	/* Initialize USB subsystem */
-	USB_Init();
+    /* Initialize USB subsystem */
+    USB_Init();
 }
 
 /** Event handler for the USB_ConfigurationChanged event. This configures the device's endpoints ready
@@ -114,8 +114,8 @@ static void SetupHardware(void)
  */
 void EVENT_USB_Device_ConfigurationChanged(void)
 {
-	/* Setup HID Report Endpoint */
-	Endpoint_ConfigureEndpoint(HID_IN_EPADDR, EP_TYPE_INTERRUPT, HID_IN_EPSIZE, 1);
+    /* Setup HID Report Endpoint */
+    Endpoint_ConfigureEndpoint(HID_IN_EPADDR, EP_TYPE_INTERRUPT, HID_IN_EPSIZE, 1);
 }
 
 /** Event handler for the USB_ControlRequest event. This is used to catch and process control requests sent to
@@ -124,79 +124,79 @@ void EVENT_USB_Device_ConfigurationChanged(void)
  */
 void EVENT_USB_Device_ControlRequest(void)
 {
-	/* Ignore any requests that aren't directed to the HID interface */
-	if ((USB_ControlRequest.bmRequestType & (CONTROL_REQTYPE_TYPE | CONTROL_REQTYPE_RECIPIENT)) !=
-	    (REQTYPE_CLASS | REQREC_INTERFACE))
-	{
-		return;
-	}
+    /* Ignore any requests that aren't directed to the HID interface */
+    if ((USB_ControlRequest.bmRequestType & (CONTROL_REQTYPE_TYPE | CONTROL_REQTYPE_RECIPIENT)) !=
+        (REQTYPE_CLASS | REQREC_INTERFACE))
+    {
+        return;
+    }
 
-	/* Process HID specific control requests */
-	switch (USB_ControlRequest.bRequest)
-	{
-		case HID_REQ_SetReport:
-			Endpoint_ClearSETUP();
+    /* Process HID specific control requests */
+    switch (USB_ControlRequest.bRequest)
+    {
+        case HID_REQ_SetReport:
+            Endpoint_ClearSETUP();
 
-			/* Wait until the command has been sent by the host */
-			while (!(Endpoint_IsOUTReceived()));
+            /* Wait until the command has been sent by the host */
+            while (!(Endpoint_IsOUTReceived()));
 
-			/* Read in the write destination address */
-			#if (FLASHEND > 0xFFFF)
-			uint32_t PageAddress = ((uint32_t)Endpoint_Read_16_LE() << 8);
-			#else
-			uint16_t PageAddress = Endpoint_Read_16_LE();
-			#endif
+            /* Read in the write destination address */
+            #if (FLASHEND > 0xFFFF)
+            uint32_t PageAddress = ((uint32_t)Endpoint_Read_16_LE() << 8);
+            #else
+            uint16_t PageAddress = Endpoint_Read_16_LE();
+            #endif
 
-			/* Determine if the given page address is correctly aligned to the
-			   start of a flash page. */
-			bool PageAddressIsAligned = !(PageAddress & (SPM_PAGESIZE - 1));
+            /* Determine if the given page address is correctly aligned to the
+               start of a flash page. */
+            bool PageAddressIsAligned = !(PageAddress & (SPM_PAGESIZE - 1));
 
-			/* Check if the command is a program page command, or a start application command */
-			#if (FLASHEND > 0xFFFF)
-			if ((uint16_t)(PageAddress >> 8) == COMMAND_STARTAPPLICATION)
-			#else
-			if (PageAddress == COMMAND_STARTAPPLICATION)
-			#endif
-			{
-				RunBootloader = false;
-			}
-			else if ((PageAddress < BOOT_START_ADDR) && PageAddressIsAligned)
-			{
-				/* Erase the given FLASH page, ready to be programmed */
-				ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-				{
-					boot_page_erase(PageAddress);
-					boot_spm_busy_wait();
-				}
+            /* Check if the command is a program page command, or a start application command */
+            #if (FLASHEND > 0xFFFF)
+            if ((uint16_t)(PageAddress >> 8) == COMMAND_STARTAPPLICATION)
+            #else
+            if (PageAddress == COMMAND_STARTAPPLICATION)
+            #endif
+            {
+                RunBootloader = false;
+            }
+            else if ((PageAddress < BOOT_START_ADDR) && PageAddressIsAligned)
+            {
+                /* Erase the given FLASH page, ready to be programmed */
+                ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+                {
+                    boot_page_erase(PageAddress);
+                    boot_spm_busy_wait();
+                }
 
-				/* Write each of the FLASH page's bytes in sequence */
-				for (uint8_t PageWord = 0; PageWord < (SPM_PAGESIZE / 2); PageWord++)
-				{
-					/* Check if endpoint is empty - if so clear it and wait until ready for next packet */
-					if (!(Endpoint_BytesInEndpoint()))
-					{
-						Endpoint_ClearOUT();
-						while (!(Endpoint_IsOUTReceived()));
-					}
+                /* Write each of the FLASH page's bytes in sequence */
+                for (uint8_t PageWord = 0; PageWord < (SPM_PAGESIZE / 2); PageWord++)
+                {
+                    /* Check if endpoint is empty - if so clear it and wait until ready for next packet */
+                    if (!(Endpoint_BytesInEndpoint()))
+                    {
+                        Endpoint_ClearOUT();
+                        while (!(Endpoint_IsOUTReceived()));
+                    }
 
-					/* Write the next data word to the FLASH page */
-					boot_page_fill(PageAddress + ((uint16_t)PageWord << 1), Endpoint_Read_16_LE());
-				}
+                    /* Write the next data word to the FLASH page */
+                    boot_page_fill(PageAddress + ((uint16_t)PageWord << 1), Endpoint_Read_16_LE());
+                }
 
-				/* Write the filled FLASH page to memory */
-				ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-				{
-					boot_page_write(PageAddress);
-					boot_spm_busy_wait();
-				}
+                /* Write the filled FLASH page to memory */
+                ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+                {
+                    boot_page_write(PageAddress);
+                    boot_spm_busy_wait();
+                }
 
-				/* Re-enable RWW section */
-				boot_rww_enable();
-			}
+                /* Re-enable RWW section */
+                boot_rww_enable();
+            }
 
-			Endpoint_ClearOUT();
+            Endpoint_ClearOUT();
 
-			Endpoint_ClearStatusStage();
-			break;
-	}
+            Endpoint_ClearStatusStage();
+            break;
+    }
 }
