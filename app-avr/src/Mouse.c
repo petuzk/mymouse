@@ -72,6 +72,12 @@ int main(void)
 /** Configures the board hardware and chip peripherals for the demo's functionality. */
 void SetupHardware(void)
 {
+    // clear reset reason so that if we need bootloader it will only contain watchdog flag
+    MCUSR = 0;
+
+    // disable watchdog that may have been started by bootloader
+    wdt_disable();
+
     /* Hardware Initialization */
     USB_Init();
 }
@@ -126,9 +132,34 @@ void EVENT_USB_Device_ControlRequest(void)
                 /* Write the report data to the control endpoint */
                 Endpoint_Write_Control_Stream_LE(&MouseReportData, sizeof(MouseReportData));
                 Endpoint_ClearOUT();
+            }
 
-                /* Clear the report data afterwards */
-                memset(&MouseReportData, 0, sizeof(MouseReportData));
+            break;
+        case HID_REQ_SetReport:
+            if (USB_ControlRequest.bmRequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE) &&
+                (USB_ControlRequest.wValue & 0xFF) == HID_REPORTID_DEVICE_CONTROL &&
+                USB_ControlRequest.wLength == 2)
+            {
+                Endpoint_ClearSETUP();
+
+                // wait until the command has been sent by the host
+                while (!(Endpoint_IsOUTReceived()));
+
+                Endpoint_Discard_8(); // discard report ID (already checked the value from SETUP transfer)
+                if (Endpoint_Read_8() == ENTER_BOOTLOADER_KEY) {
+                    Endpoint_ClearOUT();
+                    Endpoint_ClearStatusStage();
+
+                    // give some time for status stage to be completed
+                    _delay_us(400);
+                    USB_Detach();
+
+                    // enable the watchdog and force a timeout to reset the AVR
+                    wdt_enable(WDTO_120MS);
+                    for (;;);
+                } else {
+                    Endpoint_StallTransaction();
+                }
             }
 
             break;

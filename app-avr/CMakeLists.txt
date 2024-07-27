@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.13)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_TOOLCHAIN_FILE cmake/generic-gcc-avr.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)  # generate compile_commands.json for the IDE
@@ -20,5 +20,6 @@ add_link_options(-Wl,--gc-sections)
 
 project(app-avr C)
 
+add_subdirectory(common)
 add_subdirectory(src)
 add_subdirectory(bootloader)

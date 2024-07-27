@@ -48,25 +48,34 @@ static bool RunBootloader = true;
  */
 uint16_t MagicBootKey ATTR_NO_INIT;
 
+/**
+ * @brief Function performing jump to application code.
+ *
+ * See https://www.avrfreaks.net/s/topic/a5C3l000000UQYqEAO/t115894?comment=P-941576
+ */
+extern __attribute__((noreturn)) void jump_to_application(void) asm ( "0x0 ");
 
-/** Special startup routine to check if the bootloader was started via a watchdog reset, and if the magic application
- *  start key has been loaded into \ref MagicBootKey. If the bootloader started via the watchdog and the key is valid,
- *  this will force the user application to start via a software jump.
+/**
+ * @brief Special routine to determine if bootloader or application should be executed.
+ *
+ * The device switches between bootloader and application via watchdog reset (which also resets the peripherals).
+ * If the application wants to enter the bootloader, it should trigger a watchdog reset without setting MagicBootKey
+ * (it doesn't know its address anyway). If the bootloader has completed application flashing and wants to boot it,
+ * it triggers watchdog reset and writes MagicBootKey. Therefore MagicBootKey determines whether to run application
+ * or bootloader when the watchdog reset occurs. For every other reset reason (e.g. power on) skip the bootloader.
  */
 void Application_Jump_Check(void)
 {
-    /* If the reset source was the bootloader and the key is correct, clear it and jump to the application */
-    if ((MCUSR & (1 << WDRF)) && (MagicBootKey == MAGIC_BOOT_KEY))
+    // jump to app if reset reason is other than watchdog or if MagicBootKey is correct
+    if (!(MCUSR & (1 << WDRF)) || (MagicBootKey == MAGIC_BOOT_KEY))
     {
-        /* Turn off the watchdog */
-        MCUSR &= ~(1 << WDRF);
-        wdt_disable();
-
-        /* Clear the boot key and jump to the user application */
+        // clear the boot key so that it's not correct in case of a subsequent watchdog reset
         MagicBootKey = 0;
-
-        ((void (*)(void))0x0000)();
+        jump_to_application();
     }
+
+    // reset MCUSR to clear WDRF
+    MCUSR = 0;
 }
 
 /** Main program entry point. This routine configures the hardware required by the bootloader, then continuously
@@ -80,8 +89,19 @@ int main(void)
     /* Enable global interrupts so that the USB stack can function */
     GlobalInterruptEnable();
 
-    while (RunBootloader)
-      USB_USBTask();
+    while (RunBootloader) {
+        // this is the body of USB_DeviceTask without switching between endpoints,
+        // since we don't use any endpoints other than 0 (control endpoint)
+        if (USB_DeviceState == DEVICE_STATE_Unattached) {
+            continue;
+        }
+
+        Endpoint_SelectEndpoint(ENDPOINT_CONTROLEP);
+
+        if (Endpoint_IsSETUPReceived()) {
+            USB_Device_ProcessControlRequest();
+        }
+    }
 
     /* Wait a short time to end all USB transactions and then disconnect */
     _delay_us(1000);
@@ -93,7 +113,7 @@ int main(void)
     MagicBootKey = MAGIC_BOOT_KEY;
 
     /* Enable the watchdog and force a timeout to reset the AVR */
-    wdt_enable(WDTO_250MS);
+    wdt_enable(WDTO_120MS);
 
     for (;;);
 }
@@ -101,6 +121,9 @@ int main(void)
 /** Configures all hardware required for the bootloader. */
 static void SetupHardware(void)
 {
+    // disable watchdog that may have been started by application
+    wdt_disable();
+
     /* Relocate the interrupt vector table to the bootloader section */
     MCUCR = (1 << IVCE);
     MCUCR = (1 << IVSEL);

@@ -7,4 +7,5 @@ add_avr_executable(bootloader
     BootloaderHID.c
     Descriptors.c
 )
+avr_target_link_libraries(bootloader common)
 link_lufa_library(bootloader Config)

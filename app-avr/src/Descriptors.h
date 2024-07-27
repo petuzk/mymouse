@@ -48,6 +48,13 @@
         /** Size in bytes of the Mouse HID reporting IN endpoint. */
         #define MOUSE_EPSIZE              8
 
+        /**
+         * @brief HID Report ID for device status & control.
+         *
+         * This report is written to by the host to enter bootloader.
+         */
+        #define HID_REPORTID_DEVICE_CONTROL 1
+
     /* Type Defines: */
         /** Type define for the device configuration descriptor structure. This must be defined in the
          *  application code, as the configuration descriptor contains several sub-descriptors which

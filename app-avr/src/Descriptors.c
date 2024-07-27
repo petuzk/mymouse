@@ -35,6 +35,8 @@
  *  the device's capabilities and functions.
  */
 
+#include <app_bootloader_interface.h>
+
 #include "Descriptors.h"
 
 /** HID class report descriptor. This is a special descriptor constructed with values from the
@@ -45,6 +47,7 @@
  */
 const USB_Descriptor_HIDReport_Datatype_t PROGMEM MouseReport[] =
 {
+    // Mouse movement report
     HID_RI_USAGE_PAGE(8, 0x01), /* Generic Desktop */
     HID_RI_USAGE(8, 0x02), /* Mouse */
     HID_RI_COLLECTION(8, 0x01), /* Application */
@@ -73,6 +76,17 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM MouseReport[] =
             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
         HID_RI_END_COLLECTION(0),
     HID_RI_END_COLLECTION(0),
+
+    // Vendor control report
+    HID_RI_USAGE_PAGE(16, HID_VENDOR_PAGE), /* Vendor Page 0xDC */
+    // usage page, collection and usage seem to not be required,
+    // and they anyway don't have a meaning to standard host for a vendor-defined report
+    HID_RI_REPORT_ID(8, HID_REPORTID_DEVICE_CONTROL),
+    HID_RI_LOGICAL_MINIMUM(8, 0x00),
+    HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
+    HID_RI_REPORT_SIZE(8, 0x08),
+    HID_RI_REPORT_COUNT(16, 1),
+    HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
 };
 
 /** Device descriptor structure. This descriptor, located in FLASH memory, describes the overall
@@ -91,8 +105,8 @@ const USB_Descriptor_Device_t PROGMEM DeviceDescriptor =
 
     .Endpoint0Size          = FIXED_CONTROL_ENDPOINT_SIZE,
 
-    .VendorID               = 0x03EB,
-    .ProductID              = 0x2041,
+    .VendorID               = DEVICE_ID_VENDOR,
+    .ProductID              = DEVICE_ID_PRODUCT_APP,
     .ReleaseNumber          = VERSION_BCD(0,0,1),
 
     .ManufacturerStrIndex   = STRING_ID_Manufacturer,

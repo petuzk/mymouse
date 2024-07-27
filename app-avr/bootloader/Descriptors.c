@@ -35,26 +35,23 @@
  *  the device's capabilities and functions.
  */
 
+#include <app_bootloader_interface.h>
+
 #include "Descriptors.h"
 
-/** HID class report descriptor. This is a special descriptor constructed with values from the
- *  USBIF HID class specification to describe the reports and capabilities of the HID device. This
- *  descriptor is parsed by the host and its contents used to determine what data (and in what encoding)
- *  the device will send, and what it may be sent back from the host. Refer to the HID specification for
- *  more details on HID report descriptors.
+/**
+ * @brief HID class report descriptor. Only contains the vendor-defined report used to program the device.
  */
 const USB_Descriptor_HIDReport_Datatype_t HIDReport[] =
 {
-    HID_RI_USAGE_PAGE(16, 0xFFDC), /* Vendor Page 0xDC */
-    HID_RI_USAGE(8, 0xFB), /* Vendor Usage 0xFB */
-    HID_RI_COLLECTION(8, 0x01), /* Vendor Usage 1 */
-        HID_RI_USAGE(8, 0x02), /* Vendor Usage 2 */
-        HID_RI_LOGICAL_MINIMUM(8, 0x00),
-        HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
-        HID_RI_REPORT_SIZE(8, 0x08),
-        HID_RI_REPORT_COUNT(16, (sizeof(uint16_t) + SPM_PAGESIZE)),
-        HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
-    HID_RI_END_COLLECTION(0),
+    HID_RI_USAGE_PAGE(16, HID_VENDOR_PAGE),
+    // usage page, collection and usage seem to not be required,
+    // and they anyway don't have a meaning to standard host for a vendor-defined report
+    HID_RI_LOGICAL_MINIMUM(8, 0x00),
+    HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
+    HID_RI_REPORT_SIZE(8, 0x08),
+    HID_RI_REPORT_COUNT(16, (sizeof(uint16_t) + SPM_PAGESIZE)),
+    HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
 };
 
 /** Device descriptor structure. This descriptor, located in SRAM memory, describes the overall
@@ -73,8 +70,8 @@ const USB_Descriptor_Device_t DeviceDescriptor =
 
     .Endpoint0Size          = FIXED_CONTROL_ENDPOINT_SIZE,
 
-    .VendorID               = 0x03EB,
-    .ProductID              = 0x2067,
+    .VendorID               = DEVICE_ID_VENDOR,
+    .ProductID              = DEVICE_ID_PRODUCT_BOOTLOADER,
     .ReleaseNumber          = VERSION_BCD(0,0,1),
 
     .ManufacturerStrIndex   = NO_DESCRIPTOR,
