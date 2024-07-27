@@ -121,7 +121,8 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
 
             .ConfigAttributes       = (USB_CONFIG_ATTR_RESERVED | USB_CONFIG_ATTR_SELFPOWERED),
 
-            .MaxPowerConsumption    = USB_CONFIG_POWER_MA(100)
+            // battery charging current is set to ~370mA, standard allows up to 500mA
+            .MaxPowerConsumption    = USB_CONFIG_POWER_MA(444)
         },
 
     .HID_Interface =
