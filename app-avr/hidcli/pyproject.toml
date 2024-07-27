@@ -1,0 +1,15 @@
+[project]
+name = "hidcli"
+version = "0.0.1"
+authors = [
+    { name="Taras Radchenko", email="petuzk.dev@gmail.com" },
+]
+description = "Script for interacting with ATmega via HID interface"
+requires-python = ">=3.8"
+dependencies = [
+    "hid==1.0.6",
+]
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
