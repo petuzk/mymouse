@@ -151,11 +151,11 @@ void EVENT_USB_Device_ControlRequest(void)
                     Endpoint_ClearStatusStage();
 
                     // give some time for status stage to be completed
-                    _delay_us(400);
+                    _delay_us(1000);
                     USB_Detach();
 
                     // enable the watchdog and force a timeout to reset the AVR
-                    wdt_enable(WDTO_120MS);
+                    wdt_enable(WDTO_60MS);
                     for (;;);
                 } else {
                     Endpoint_StallTransaction();

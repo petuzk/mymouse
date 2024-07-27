@@ -113,7 +113,7 @@ int main(void)
     MagicBootKey = MAGIC_BOOT_KEY;
 
     /* Enable the watchdog and force a timeout to reset the AVR */
-    wdt_enable(WDTO_120MS);
+    wdt_enable(WDTO_60MS);
 
     for (;;);
 }
