@@ -12,7 +12,7 @@ class ApplicationCommunicator(ModeCommunicator):
         self.dev = dev
 
     def set_mode(self, new_mode: DeviceMode):
-        assert new_mode == DeviceMode.BOOTLOADER
+        assert new_mode is DeviceMode.BOOTLOADER
         self.dev.write(b'\x01\x42')  # first report ID, enter bootloader command
         time.sleep(1)  # give the device some time to reset itself and enumerate to USB
         return None  # the device re-enumerates to USB bus, and should be found again

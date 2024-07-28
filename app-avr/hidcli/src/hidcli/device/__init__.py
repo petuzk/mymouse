@@ -67,7 +67,8 @@ class Device:
         return self.communicator.MODE
 
     @mode.setter
-    def mode(self, new_mode):
+    def mode(self, new_mode: 'str | DeviceMode'):
+        new_mode = DeviceMode(new_mode)
         # save previous mode for error message
         prev_mode = self.mode
         # don't do anything if the device is in requested mode
