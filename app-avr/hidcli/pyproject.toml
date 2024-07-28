@@ -8,6 +8,7 @@ description = "Script for interacting with ATmega via HID interface"
 requires-python = ">=3.8"
 dependencies = [
     "hid==1.0.6",
+    "intelhex==2.3.0",
     "more-itertools==10.3.0",
 ]
 

@@ -5,6 +5,13 @@ from .app_mode import ApplicationCommunicator
 from .bootloader_mode import BootloaderCommunicator
 from .mode import DeviceMode, ModeCommunicator
 
+__all__ = (
+    # re-exports
+    'ApplicationCommunicator', 'BootloaderCommunicator', 'DeviceMode', 'ModeCommunicator',
+    # things defined here
+    'Device', 'MultipleDevicesFoundError', 'find_device', 'find_communicator',
+)
+
 
 class MultipleDevicesFoundError(RuntimeError):
     ...
