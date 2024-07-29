@@ -5,7 +5,7 @@ import hid
 
 from .mode import DeviceMode, ModeCommunicator
 
-FLASH_PAGE_SIZE_BYTES = 32 * 2  # for ATmega8U2, refer to Table 25-7 in datasheet
+FLASH_PAGE_SIZE_BYTES = 128  # see SPM_PAGESIZE in iom8u2.h
 
 
 class BootloaderCommunicator(ModeCommunicator):
