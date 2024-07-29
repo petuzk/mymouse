@@ -30,10 +30,9 @@ class BootloaderCommunicator(ModeCommunicator):
         if (unaligned_size := len(program) % FLASH_PAGE_SIZE_BYTES):
             program += bytes(FLASH_PAGE_SIZE_BYTES - unaligned_size)
         for byte_offset in range(0, len(program), FLASH_PAGE_SIZE_BYTES):
-            page_addr = (start_addr + byte_offset) // 2
             self.dev.write(b''.join((
                 b'\x00',
-                struct.pack('<H', page_addr),  # little-endian short
+                struct.pack('<H', start_addr + byte_offset),  # little-endian short
                 program[byte_offset:byte_offset + FLASH_PAGE_SIZE_BYTES]
             )))
 

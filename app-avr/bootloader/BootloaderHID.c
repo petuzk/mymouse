@@ -183,7 +183,10 @@ void EVENT_USB_Device_ControlRequest(void)
             {
                 RunBootloader = false;
             }
-            else if ((PageAddress < BOOT_START_ADDR) && PageAddressIsAligned)
+            else if (!(PageAddress < BOOT_START_ADDR && PageAddressIsAligned)) {
+                Endpoint_StallTransaction();
+            }
+            else
             {
                 /* Erase the given FLASH page, ready to be programmed */
                 ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
