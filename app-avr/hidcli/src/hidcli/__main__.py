@@ -13,7 +13,7 @@ def main():
     flash_parser.add_argument('image', type=FileType(), help='Path to .hex file (or "-" to read from stdin)')
 
     mode_parser = subparsers.add_parser('mode', help='Change device mode')
-    mode_parser.add_argument('mode', choices=DeviceMode, help='Desired mode')
+    mode_parser.add_argument('mode', choices=list(DeviceMode), help='Desired mode')
 
     args = parser.parse_args()
 
