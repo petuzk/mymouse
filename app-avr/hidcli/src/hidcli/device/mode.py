@@ -1,7 +1,18 @@
-from enum import StrEnum
 from typing import Protocol
 
 import hid
+
+try:
+    from enum import StrEnum
+except ImportError:
+    from enum import Enum
+
+    class StrEnum(Enum):
+        def __eq__(self, other):
+            return self.value == other or super().__eq__(other)
+
+        def __str__(self) -> str:
+            return self.value
 
 
 class DeviceMode(StrEnum):

@@ -5,7 +5,7 @@ authors = [
     { name="Taras Radchenko", email="petuzk.dev@gmail.com" },
 ]
 description = "Script for interacting with ATmega via HID interface"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "hid==1.0.6",
     "intelhex==2.3.0",
