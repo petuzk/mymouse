@@ -23,3 +23,10 @@
  * Vendor-defined usage pages are FF00-FFFF.
  */
 #define HID_VENDOR_PAGE 0xFFDC
+
+/**
+ * @brief Current consumption in mA reported by USB configuration descriptor.
+ *
+ * Battery charging current is set to ~370mA, standard allows up to 500mA.
+ */
+#define CURRENT_CONSUMPTION_MA 444
