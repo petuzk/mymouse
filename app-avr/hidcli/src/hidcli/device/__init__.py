@@ -1,3 +1,5 @@
+import time
+
 import hid
 from more_itertools import map_except
 
@@ -78,9 +80,10 @@ class Device:
         with self.communicator.dev:  # make sure the device is closed after set_mode()
             new_communicator = self.communicator.set_mode(new_mode)
         if new_communicator is None:
-            new_communicator = find_communicator()
-            if new_communicator is None:
-                raise RuntimeError(f'could not find the device after switching mode from {prev_mode} to {new_mode}')
+            # wait for device to be enumerated for 5 seconds, or raise an exception
+            new_communicator = _wait_for_communicator(timeout=5, on_timeout=RuntimeError(
+                f'could not find the device after switching mode from {prev_mode} to {new_mode}',
+            ))
         self.communicator = new_communicator
         # make sure the new mode is as requested
         if self.mode != new_mode:
@@ -113,3 +116,11 @@ def _get_comm_args_for_dev_info(device_info: dict
         (VENDOR_ID, PRODUCT_ID_BOOTLOADER): BootloaderCommunicator,
     }[device_info['vendor_id'], device_info['product_id']]
     return (cls, device_info['path'])
+
+
+def _wait_for_communicator(timeout: float, on_timeout: Exception) -> ModeCommunicator:
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        if (communicator := find_communicator()) is not None:
+            return communicator
+    raise on_timeout

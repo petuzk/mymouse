@@ -1,5 +1,4 @@
 import struct
-import time
 
 import hid
 
@@ -17,7 +16,6 @@ class BootloaderCommunicator(ModeCommunicator):
     def set_mode(self, new_mode: DeviceMode):
         assert new_mode is DeviceMode.APP
         self.dev.write(b'\x00\xff\xff')  # zero report ID, address 0xFFFF
-        time.sleep(1)  # give the device some time to reset itself and enumerate to USB
         return None  # the device re-enumerates to USB bus, and should be found again
 
     def flash(self, start_addr: int, program: bytes):
