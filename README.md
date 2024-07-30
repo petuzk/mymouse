@@ -25,3 +25,4 @@ bootloader) or on nRF (to be implemented). The source code can be found in [app-
 [nRF]: https://www.nordicsemi.com/Products/nRF52832
 [ATmega]: https://www.microchip.com/en-us/product/ATmega8U2
 [zephyr]: https://www.zephyrproject.org/
+[lufa]: https://github.com/abcminiuser/lufa
