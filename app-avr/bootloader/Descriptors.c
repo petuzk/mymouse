@@ -1,47 +1,22 @@
-/*
-             LUFA Library
-     Copyright (C) Dean Camera, 2021.
+// This code is based on LUFA BootloaderHID example, distributed under modified MIT license:
+// https://github.com/abcminiuser/lufa/blob/a13ca118d3987890b749a2a96a92f74771821f8a/Bootloaders/HID/Descriptors.c
 
-  dean [at] fourwalledcubicle [dot] com
-           www.lufa-lib.org
-*/
+// Copyright 2021 Dean Camera (dean [at] fourwalledcubicle [dot] com)
+// Copyright 2024 Taras Radchenko (petuzk.dev@gmail.com)
 
-/*
-  Copyright 2021  Dean Camera (dean [at] fourwalledcubicle [dot] com)
-
-  Permission to use, copy, modify, distribute, and sell this
-  software and its documentation for any purpose is hereby granted
-  without fee, provided that the above copyright notice appear in
-  all copies and that both that the copyright notice and this
-  permission notice and warranty disclaimer appear in supporting
-  documentation, and that the name of the author not be used in
-  advertising or publicity pertaining to distribution of the
-  software without specific, written prior permission.
-
-  The author disclaims all warranties with regard to this
-  software, including all implied warranties of merchantability
-  and fitness.  In no event shall the author be liable for any
-  special, indirect or consequential damages or any damages
-  whatsoever resulting from loss of use, data or profits, whether
-  in an action of contract, negligence or other tortious action,
-  arising out of or in connection with the use or performance of
-  this software.
-*/
-
-/** \file
- *
- *  USB Device Descriptors, for library use when in USB device mode. Descriptors are special
- *  computer-readable structures which the host requests upon device enumeration, to determine
- *  the device's capabilities and functions.
+/**
+ * @file Descriptors.c
+ * @brief USB Descriptors for the bootloader.
  */
 
 #include <app_bootloader_interface.h>
 
 #include "Descriptors.h"
 
-/**
- * @brief HID class report descriptor. Only contains the vendor-defined report used to program the device.
- */
+/** Bootloader only has/needs one USB interface. */
+#define INTERFACE_ID 0
+
+/** HID class report descriptor. Only contains the vendor-defined report used to program the device. */
 const USB_Descriptor_HIDReport_Datatype_t HIDReport[] =
 {
     HID_RI_USAGE_PAGE(16, HID_VENDOR_PAGE),
@@ -55,10 +30,10 @@ const USB_Descriptor_HIDReport_Datatype_t HIDReport[] =
     HID_RI_END_COLLECTION(0),
 };
 
-/** Device descriptor structure. This descriptor, located in SRAM memory, describes the overall
- *  device characteristics, including the supported USB version, control endpoint size and the
- *  number of device configurations. The descriptor is read out by the USB host when the enumeration
- *  process begins.
+/**
+ * @brief Device descriptor with basic information about the device.
+ *
+ * Python script recognizes the device in bootloader mode by Vendor and Product IDs specified here.
  */
 const USB_Descriptor_Device_t DeviceDescriptor =
 {
@@ -82,11 +57,17 @@ const USB_Descriptor_Device_t DeviceDescriptor =
     .NumberOfConfigurations = FIXED_NUM_CONFIGURATIONS
 };
 
-/** Configuration descriptor structure. This descriptor, located in SRAM memory, describes the usage
- *  of the device in one of its supported configurations, including information about any device interfaces
- *  and endpoints. The descriptor is read out by the USB host during the enumeration process when selecting
- *  a configuration so that the host may correctly communicate with the USB device.
- */
+/** Configuration descriptor structure for this application (see ConfigurationDescriptor below). */
+typedef struct {
+    USB_Descriptor_Configuration_Header_t Config;
+
+    // generic HID interface
+    USB_Descriptor_Interface_t            HID_Interface;
+    USB_HID_Descriptor_HID_t              HID_VendorHID;
+    USB_Descriptor_Endpoint_t             HID_ReportINEndpoint;
+} USB_Descriptor_Configuration_t;
+
+/** Minimal required USB Configuration descriptor for this application. */
 const USB_Descriptor_Configuration_t ConfigurationDescriptor =
 {
     .Config =
@@ -108,7 +89,7 @@ const USB_Descriptor_Configuration_t ConfigurationDescriptor =
         {
             .Header                 = {.Size = sizeof(USB_Descriptor_Interface_t), .Type = DTYPE_Interface},
 
-            .InterfaceNumber        = INTERFACE_ID_GenericHID,
+            .InterfaceNumber        = INTERFACE_ID,
             .AlternateSetting       = 0x00,
 
             .TotalEndpoints         = 1,
@@ -142,43 +123,33 @@ const USB_Descriptor_Configuration_t ConfigurationDescriptor =
         },
 };
 
-/** This function is called by the library when in device mode, and must be overridden (see library "USB Descriptors"
- *  documentation) by the application code so that the address and size of a requested descriptor can be given
- *  to the USB library. When the device receives a Get Descriptor request on the control endpoint, this function
- *  is called so that the descriptor details can be passed back and the appropriate descriptor sent back to the
- *  USB host.
- */
+/** Called by LUFA to get different kinds of descriptors for this device/application. */
 uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
                                     const uint16_t wIndex,
-                                    const void** const DescriptorAddress)
+                                    const void** const descriptor_address)
 {
     const uint8_t DescriptorType   = (wValue >> 8);
 
-    const void* Address = NULL;
-    uint16_t    Size    = NO_DESCRIPTOR;
+    const void* address = NULL;
+    uint16_t    size    = NO_DESCRIPTOR;
 
-    /* If/Else If chain compiles slightly smaller than a switch case */
-    if (DescriptorType == DTYPE_Device)
-    {
-        Address = &DeviceDescriptor;
-        Size    = sizeof(USB_Descriptor_Device_t);
+    if (DescriptorType == DTYPE_Device) {
+        address = &DeviceDescriptor;
+        size = sizeof(USB_Descriptor_Device_t);
     }
-    else if (DescriptorType == DTYPE_Configuration)
-    {
-        Address = &ConfigurationDescriptor;
-        Size    = sizeof(USB_Descriptor_Configuration_t);
+    else if (DescriptorType == DTYPE_Configuration) {
+        address = &ConfigurationDescriptor;
+        size = sizeof(USB_Descriptor_Configuration_t);
     }
-    else if (DescriptorType == HID_DTYPE_HID)
-    {
-        Address = &ConfigurationDescriptor.HID_VendorHID;
-        Size    = sizeof(USB_HID_Descriptor_HID_t);
+    else if (DescriptorType == HID_DTYPE_HID) {
+        address = &ConfigurationDescriptor.HID_VendorHID;
+        size = sizeof(USB_HID_Descriptor_HID_t);
     }
-    else if (DescriptorType == HID_DTYPE_Report)
-    {
-        Address = &HIDReport;
-        Size    = sizeof(HIDReport);
+    else if (DescriptorType == HID_DTYPE_Report) {
+        address = &HIDReport;
+        size = sizeof(HIDReport);
     }
 
-    *DescriptorAddress = Address;
-    return Size;
+    *descriptor_address = address;
+    return size;
 }
