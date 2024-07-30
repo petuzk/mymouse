@@ -64,6 +64,7 @@ int main(void)
 
     for (;;)
     {
+        wdt_reset();
         Mouse_Task();
         USB_USBTask();
     }
@@ -74,9 +75,6 @@ void SetupHardware(void)
 {
     // clear reset reason so that if we need bootloader it will only contain watchdog flag
     MCUSR = 0;
-
-    // disable watchdog that may have been started by bootloader
-    wdt_disable();
 
     /* Hardware Initialization */
     USB_Init();

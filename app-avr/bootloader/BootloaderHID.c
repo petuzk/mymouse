@@ -67,6 +67,8 @@ void application_jump_check() {
     {
         // clear the boot key so that it's not correct in case of a subsequent watchdog reset
         magic_boot_key = 0;
+        // enable watchdog so that if there is a bug in application making it unresponsive we switch to bootloader
+        wdt_enable(WDTO_60MS);
         jump_to_application();
     }
 
