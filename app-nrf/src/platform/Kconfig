@@ -29,3 +29,18 @@ config POWER_ON_OFF_HOLD_TIME
   help
     A number of milliseconds the power switch
     has to be held to power the device on or off.
+
+config SPI_DISABLE_CLK_DELAY
+  int "Set SPI CLK to low after specified period of inactivity (us)"
+  default 0
+  help
+    Set SPI CLK to low (by re-configuring SPI) after a specified period
+    of inactivity on the bus. This feature is disabled if the value is 0.
+
+config SPI_ENABLE_CLK_DELAY
+  int "Delay after bringing SPI CLK high (us)"
+  default 0
+  help
+    If the SPI reconfiguration brings SPI CLK high, wait a specified time.
+    This is useful if the CLK line has a capacitive load attached.
+    This feature is disabled if the value is 0.

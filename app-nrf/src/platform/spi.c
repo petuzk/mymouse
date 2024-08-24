@@ -24,6 +24,8 @@ struct {
 K_MUTEX_DEFINE(spi_mutex);
 static bool is_in_spi_isr = false;
 
+static const struct spi_configuration* prev_config = NULL;
+
 // truth table:
 //   ISR  |  SPI ISR  |   owner   |  error
 //    y   |     y     |     -     |    n
@@ -33,25 +35,56 @@ static bool is_in_spi_isr = false;
 
 #define CHECK_LOCK_OWNED() if (k_is_in_isr() ? !is_in_spi_isr : k_current_get() != spi_mutex.owner) return -EPERM
 
+#if CONFIG_SPI_DISABLE_CLK_DELAY > 0
+static inline bool is_sck_inactive_high(nrf_spim_mode_t mode) {
+    return mode == NRF_SPIM_MODE_2 || mode == NRF_SPIM_MODE_3;
+}
+
+static void disable_sck(struct k_work *work) {
+    nrf_spim_configure(NRF_SPIM0, NRF_SPIM_MODE_0, NRF_SPIM_BIT_ORDER_MSB_FIRST);
+    prev_config = NULL;
+}
+
+K_WORK_DELAYABLE_DEFINE(disable_sck_work, disable_sck);
+#endif // CONFIG_SPI_DISABLE_CLK_DELAY > 0
+
 int spi_lock(k_timeout_t timeout) {
+#if CONFIG_SPI_DISABLE_CLK_DELAY > 0
+    k_work_cancel_delayable(&disable_sck_work);
+#endif
     return k_mutex_lock(&spi_mutex, timeout);
 }
 
 int spi_unlock() {
     // k_mutex_unlock returns an error if the lock is not owned by this thread, no need to CHECK_LOCK_OWNED
-    return k_mutex_unlock(&spi_mutex);
+    int err = k_mutex_unlock(&spi_mutex);
+#if CONFIG_SPI_DISABLE_CLK_DELAY > 0
+    if (likely(!err) && prev_config && is_sck_inactive_high(prev_config->op_mode)) {
+        // if previous configuration has SCK inactive high, schedule disabling it after a period of inactivity
+        // this is needed to prevent AVR ghost powering via SCK line
+        k_work_schedule(&disable_sck_work, K_USEC(CONFIG_SPI_DISABLE_CLK_DELAY));
+    }
+#endif
+    return err;
 }
 
 int spi_configure(const struct spi_configuration* config) {
     CHECK_LOCK_OWNED();
 
-    static const struct spi_configuration* prev_config = NULL;
     if (config->is_const && config == prev_config) {
         return 0;
     }
 
     nrf_spim_configure(NRF_SPIM0, config->op_mode, config->bit_order);
     nrf_spim_frequency_set(NRF_SPIM0, config->freq);
+
+#if CONFIG_SPI_ENABLE_CLK_DELAY > 0
+    if ((!prev_config || !is_sck_inactive_high(prev_config->op_mode)) && is_sck_inactive_high(config->op_mode)) {
+        // wait more time than normally so that AVR's capacitors can charge up from SCK
+        k_usleep(CONFIG_SPI_ENABLE_CLK_DELAY);
+    }
+#endif
+
     prev_config = config;
 
     return 0;
