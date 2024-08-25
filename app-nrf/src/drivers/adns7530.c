@@ -190,7 +190,7 @@ static int adns7530_sample_fetch(const struct device *dev, enum sensor_channel c
     adns7530_reg_read(ADNS7530_REG_MOTION_BURST, &motion_burst, sizeof(motion_burst));
 
     if (motion_burst.motion & ADNS7530_LASER_FAULT_MASK || !(motion_burst.motion & ADNS7530_LASER_CFG_VALID_MASK)) {
-        LOG_ERR("laser fault or laser invalid cfg");
+        LOG_ERR("laser fault or laser invalid cfg: %x", motion_burst.motion);
         return -ENODATA;
     }
 
