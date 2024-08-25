@@ -32,84 +32,9 @@ const static struct spi_configuration adns7530_spi_config = {
     .is_const = true,
 };
 
-static struct {
-    int err;
-    int rx_len;
-    void* rx_buf;
-} adns7530_spi_cb_ctx;
-
-K_SEM_DEFINE(adns7530_spi_transfer_end, 0, 1);
-
-static void adns7530_spi_done_callback() {
-    if (adns7530_spi_cb_ctx.rx_buf) {
-        // the SPI task/event latency is about 6 us in total, and rescheduling another transaction takes ~5us
-        // the total latency is more than required delay t_{SRAD} = 4us, so no additional delay needed
-        struct spi_transfer_spec spec = {NULL, 0, adns7530_spi_cb_ctx.rx_buf, adns7530_spi_cb_ctx.rx_len};
-        adns7530_spi_cb_ctx.rx_buf = NULL;
-        adns7530_spi_cb_ctx.err = spi_transceive(&spec, adns7530_spi_done_callback);
-        if (!adns7530_spi_cb_ctx.err) {
-            return;  // wait for callback from second transaction
-        }
-    }
-    k_sem_give(&adns7530_spi_transfer_end);
-}
-
 static int adns7530_spi_transceive(void* tx_buf, uint32_t tx_len, void* rx_buf, uint32_t rx_len) {
-    int err;
-
-    err = spi_lock(K_SECONDS(5));
-    if (unlikely(err)) {
-        LOG_ERR("can't obtain spi lock: error %d", err);
-        goto exit;
-    }
-
-    err = spi_configure(&adns7530_spi_config);
-    if (unlikely(err)) {
-        LOG_ERR("can't configure spi: error %d", err);
-        goto exit;
-    }
-
-    nrf_gpio_pin_write(CS_PIN, !CS_INACTIVE);
-
-    adns7530_spi_cb_ctx.err = 0;
-    adns7530_spi_cb_ctx.rx_len = rx_len;
-    adns7530_spi_cb_ctx.rx_buf = rx_buf;
-    k_sem_reset(&adns7530_spi_transfer_end);
-
-    struct spi_transfer_spec spec = {tx_buf, tx_len, NULL, 0};
-    err = spi_transceive(&spec, adns7530_spi_done_callback);
-    if (unlikely(err)) {
-        LOG_ERR("can't start spi tx transfer: error %d", err);
-        goto exit;
-    }
-
-    err = k_sem_take(&adns7530_spi_transfer_end, K_USEC(1000));
-    if (unlikely(err)) {
-        if (err == -EAGAIN) {
-            LOG_ERR("timed out waiting for spi transaction to end");
-        } else {
-            LOG_ERR("got error %d while waiting for spi transaction to end", err);
-        }
-        goto exit;
-    }
-
-    err = adns7530_spi_cb_ctx.err;  // return code of second spi transaction
-    if (unlikely(err)) {
-        LOG_ERR("can't start spi rx transfer: error %d", err);
-        goto exit;
-    }
-
-    if (!rx_buf) {
-        // if we are writing to the device, we should wait t_{SCLK-NCS} = 20us "for valid MOSI data transfer"
-        // in practive, however, SPI task/event latency + thread resuming takes about 14us
-        // so waiting for another 10 us should be sufficient (btw seems to work even without this delay)
-        k_usleep(10);
-    }
-
-exit:
-    nrf_gpio_pin_write(CS_PIN, CS_INACTIVE);
-    spi_unlock();
-    return err;
+    struct spi_transfer_spec spec = {tx_buf, tx_len, rx_buf, rx_len};
+    return spi_transceive_tx_then_rx(&spec, &adns7530_spi_config, CS_PIN);
 }
 
 static inline int adns7530_reg_read(uint8_t reg, void* dst, uint32_t count) {

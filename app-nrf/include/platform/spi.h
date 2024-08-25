@@ -47,6 +47,30 @@ int spi_lock(k_timeout_t timeout);
  */
 int spi_unlock();
 
+/**
+ * @brief Configure SPI for the data transfer. Requires lock to be obtained with spi_lock.
+ */
 int spi_configure(const struct spi_configuration* config);
+
+/**
+ * @brief Initiate an SPI data transfer with simultaneous tramsission and reception.
+ *
+ * This is a low-level interface. This function configures the buffers and starts
+ * SPIM transfer with DMA engine. The specified callback is called from ISR when
+ * the transfer is done.
+ */
 int spi_transceive(const struct spi_transfer_spec* spec, void (*callback)());
+
+/**
+ * @brief Similar to spi_transceive, but waits for the transaction to end.
+ */
 int spi_transceive_sync(struct spi_transfer_spec* spec);
+
+/**
+ * @brief Initiate an SPI data transfer, with reception occuring after transmission.
+ *
+ * This is a higher-level interface that also manages SPI lock, configuration and CS pin state.
+ * Note: this function modifies passed spec.
+ */
+int spi_transceive_tx_then_rx(struct spi_transfer_spec* spec,
+                              const struct spi_configuration* config, uint32_t cs_pin);

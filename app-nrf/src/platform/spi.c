@@ -16,6 +16,7 @@ LOG_MODULE_REGISTER(spi);
 #define SCK_PIN   DT_PROP(SPIM_NODE, sck_pin)
 #define MOSI_PIN  DT_PROP(SPIM_NODE, mosi_pin)
 #define MISO_PIN  DT_PROP(SPIM_NODE, miso_pin)
+#define CS_INACT  1
 
 struct {
     void (*callback)();
@@ -125,6 +126,83 @@ int spi_transceive_sync(struct spi_transfer_spec* spec) {
         return err;
     }
     return k_sem_take(&spi_sync_sem, K_FOREVER);
+}
+
+static struct {
+    int err;
+    int rx_len;
+    void* rx_buf;
+} spi_tx_then_rx_cb_ctx;
+
+static void spi_tx_then_rx_spi_done_callback() {
+    if (spi_tx_then_rx_cb_ctx.rx_buf) {
+        // the SPI task/event latency is about 6 us in total, and rescheduling another transaction takes ~5us
+        // the total latency is more than required delay t_{SRAD} = 4us, so no additional delay needed
+        struct spi_transfer_spec spec = {NULL, 0, spi_tx_then_rx_cb_ctx.rx_buf, spi_tx_then_rx_cb_ctx.rx_len};
+        spi_tx_then_rx_cb_ctx.rx_buf = NULL;
+        spi_tx_then_rx_cb_ctx.err = spi_transceive(&spec, spi_tx_then_rx_spi_done_callback);
+        if (!spi_tx_then_rx_cb_ctx.err) {
+            return;  // wait for callback from second transaction
+        }
+    }
+    k_sem_give(&spi_sync_sem);
+}
+
+int spi_transceive_tx_then_rx(struct spi_transfer_spec* spec,
+                              const struct spi_configuration* config, uint32_t cs_pin) {
+    int err;
+
+    err = spi_lock(K_MSEC(100));
+    if (unlikely(err)) {
+        LOG_ERR("can't obtain spi lock: error %d", err);
+        goto exit;
+    }
+
+    err = spi_configure(config);
+    if (unlikely(err)) {
+        LOG_ERR("can't configure spi: error %d", err);
+        goto exit;
+    }
+
+    nrf_gpio_pin_write(cs_pin, !CS_INACT);
+
+    spi_tx_then_rx_cb_ctx.err = 0;
+    spi_tx_then_rx_cb_ctx.rx_len = spec->rx_len;
+    spi_tx_then_rx_cb_ctx.rx_buf = spec->rx_buf;
+
+    spec->rx_len = 0;
+    spec->rx_buf = NULL;
+    err = spi_transceive(spec, spi_tx_then_rx_spi_done_callback);
+    if (unlikely(err)) {
+        LOG_ERR("can't start spi %cx transfer: error %d", 't', err);
+        goto exit;
+    }
+
+    err = k_sem_take(&spi_sync_sem, K_USEC(1000));
+    if (unlikely(err)) {
+        if (err == -EAGAIN) {
+            LOG_ERR("timed out waiting for spi transaction to end");
+        } else {
+            LOG_ERR("got error %d while waiting for spi transaction to end", err);
+        }
+        goto exit;
+    }
+
+    err = spi_tx_then_rx_cb_ctx.err;  // return code of second spi transaction
+    if (unlikely(err)) {
+        LOG_ERR("can't start spi %cx transfer: error %d", 'r', err);
+        goto exit;
+    }
+
+    // if everything went fine, wait for a bit before restoring CS back to high
+    // e.g. the optical sensor needs t_{SCLK-NCS} = 20us "for valid MOSI data transfer"
+    // note that there's also SPI task/event latency + thread resuming which take about 14us
+    k_usleep(10);
+
+exit:
+    nrf_gpio_pin_write(cs_pin, CS_INACT);
+    spi_unlock();
+    return err;
 }
 
 static void spi_irq_handler() {
