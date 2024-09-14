@@ -35,6 +35,7 @@
  */
 
 #include "Mouse.h"
+#include "spi.h"
 
 /** Indicates what report mode the host has requested, true for normal HID reporting mode, \c false for special boot
  *  protocol reporting mode.
@@ -65,6 +66,7 @@ int main(void)
     for (;;)
     {
         wdt_reset();
+        spi_task();
         Mouse_Task();
         USB_USBTask();
     }
@@ -78,6 +80,7 @@ void SetupHardware(void)
 
     /* Hardware Initialization */
     USB_Init();
+    init_spi();
 }
 
 /** Event handler for the USB_Connect event. This indicates that the device is enumerating via the status LEDs and
