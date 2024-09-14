@@ -1,0 +1,14 @@
+# Copyright (c) 2024 Taras Radchenko
+# SPDX-License-Identifier: MIT
+
+description: ATmega as SPI slave with IRQ GPIO.
+
+compatible: "atmega-spi-slave"
+
+include: "spi-device.yaml"
+
+properties:
+  irq-gpios:
+    type: phandle-array
+    required: true
+    description: IRQ pin.
