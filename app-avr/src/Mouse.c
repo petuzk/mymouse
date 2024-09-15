@@ -79,7 +79,7 @@ void SetupHardware(void)
     MCUSR = 0;
 
     /* Hardware Initialization */
-    USB_Init();
+    USB_DeviceState = DEVICE_STATE_Unattached;
     init_spi();
 }
 

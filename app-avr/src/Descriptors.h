@@ -33,8 +33,9 @@
  *  Header file for Descriptors.c.
  */
 
-#ifndef _DESCRIPTORS_H_
-#define _DESCRIPTORS_H_
+#pragma once
+
+#include <stdint.h>
 
     /* Includes: */
         #include <LUFA/Drivers/USB/USB.h>
@@ -90,10 +91,5 @@
             STRING_ID_Product      = 2, /**< Product string ID */
         };
 
-    /* Function Prototypes: */
-        uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
-                                            const uint16_t wIndex,
-                                            const void** const DescriptorAddress)
-                                            ATTR_WARN_UNUSED_RESULT ATTR_NON_NULL_PTR_ARG(3);
-
-#endif
+void set_hid_report_size(uint8_t size);
+void get_hid_report_descriptor_buffer(uint8_t* size, uint8_t** data);

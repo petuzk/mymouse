@@ -39,63 +39,12 @@
 
 #include "Descriptors.h"
 
-/** HID class report descriptor. This is a special descriptor constructed with values from the
- *  USBIF HID class specification to describe the reports and capabilities of the HID device. This
- *  descriptor is parsed by the host and its contents used to determine what data (and in what encoding)
- *  the device will send, and what it may be sent back from the host. Refer to the HID specification for
- *  more details on HID report descriptors.
- */
-const USB_Descriptor_HIDReport_Datatype_t PROGMEM MouseReport[] =
-{
-    // Mouse movement report
-    HID_RI_USAGE_PAGE(8, 0x01), /* Generic Desktop */
-    HID_RI_USAGE(8, 0x02), /* Mouse */
-    HID_RI_COLLECTION(8, 0x01), /* Application */
-        HID_RI_USAGE(8, 0x01), /* Pointer */
-        HID_RI_COLLECTION(8, 0x00), /* Physical */
-            HID_RI_USAGE_PAGE(8, 0x09), /* Button */
-            HID_RI_USAGE_MINIMUM(8, 0x01),
-            HID_RI_USAGE_MAXIMUM(8, 0x03),
-            HID_RI_LOGICAL_MINIMUM(8, 0x00),
-            HID_RI_LOGICAL_MAXIMUM(8, 0x01),
-            HID_RI_REPORT_COUNT(8, 0x03),
-            HID_RI_REPORT_SIZE(8, 0x01),
-            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
-            HID_RI_REPORT_COUNT(8, 0x01),
-            HID_RI_REPORT_SIZE(8, 0x05),
-            HID_RI_INPUT(8, HID_IOF_CONSTANT),
-            HID_RI_USAGE_PAGE(8, 0x01), /* Generic Desktop */
-            HID_RI_USAGE(8, 0x30), /* Usage X */
-            HID_RI_USAGE(8, 0x31), /* Usage Y */
-            HID_RI_LOGICAL_MINIMUM(8, -1),
-            HID_RI_LOGICAL_MAXIMUM(8, 1),
-            HID_RI_PHYSICAL_MINIMUM(8, -1),
-            HID_RI_PHYSICAL_MAXIMUM(8, 1),
-            HID_RI_REPORT_COUNT(8, 0x02),
-            HID_RI_REPORT_SIZE(8, 0x08),
-            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
-        HID_RI_END_COLLECTION(0),
-    HID_RI_END_COLLECTION(0),
-
-    // Vendor control report
-    HID_RI_USAGE_PAGE(16, HID_VENDOR_PAGE), /* Vendor Page 0xDC */
-    // usage seem to not be required, it's anyway meaningless for a vendor-defined report
-    HID_RI_COLLECTION(8, 0x01), // application collection
-        HID_RI_REPORT_ID(8, HID_REPORTID_DEVICE_CONTROL),
-        HID_RI_LOGICAL_MINIMUM(8, 0x00),
-        HID_RI_LOGICAL_MAXIMUM(8, 0xFF),
-        HID_RI_REPORT_SIZE(8, 0x08),
-        HID_RI_REPORT_COUNT(16, 1),
-        HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
-    HID_RI_END_COLLECTION(0),
-};
-
 /** Device descriptor structure. This descriptor, located in FLASH memory, describes the overall
  *  device characteristics, including the supported USB version, control endpoint size and the
  *  number of device configurations. The descriptor is read out by the USB host when the enumeration
  *  process begins.
  */
-const USB_Descriptor_Device_t PROGMEM DeviceDescriptor =
+const USB_Descriptor_Device_t PROGMEM device_descriptor =
 {
     .Header                 = {.Size = sizeof(USB_Descriptor_Device_t), .Type = DTYPE_Device},
 
@@ -122,7 +71,7 @@ const USB_Descriptor_Device_t PROGMEM DeviceDescriptor =
  *  and endpoints. The descriptor is read out by the USB host during the enumeration process when selecting
  *  a configuration so that the host may correctly communicate with the USB device.
  */
-const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
+static USB_Descriptor_Configuration_t configuration_descriptor =
 {
     .Config =
         {
@@ -161,7 +110,7 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
             .CountryCode            = 0x00,
             .TotalReportDescriptors = 1,
             .HIDReportType          = HID_DTYPE_Report,
-            .HIDReportLength        = sizeof(MouseReport)
+            .HIDReportLength        = 0  // obtained from SPI master device
         },
 
     .HID_ReportINEndpoint =
@@ -175,23 +124,51 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor =
         }
 };
 
+/**
+ * @brief Size of a RAM buffer for HID Report descriptor.
+ */
+#define REPORT_DESCRIPTOR_MAX_SIZE 256
+
+/**
+ * @brief HID Report descriptor.
+ *
+ * HID Report descriptor is not hardcoded, but instead is obtained from SPI master.
+ * Therefore it is stored in RAM.
+ */
+static uint8_t hid_report_desc[REPORT_DESCRIPTOR_MAX_SIZE];
+
+void set_hid_report_size(const uint8_t size) {
+    if (USB_DeviceState == DEVICE_STATE_Unattached && size <= REPORT_DESCRIPTOR_MAX_SIZE) {
+        configuration_descriptor.HID_MouseHID.HIDReportLength = size;
+    }
+}
+
+void get_hid_report_descriptor_buffer(uint8_t* size, uint8_t** data) {
+    if (USB_DeviceState == DEVICE_STATE_Unattached) {
+        *size = configuration_descriptor.HID_MouseHID.HIDReportLength;
+        *data = hid_report_desc;
+    } else {
+        *size = 0;
+    }
+}
+
 /** Language descriptor structure. This descriptor, located in FLASH memory, is returned when the host requests
  *  the string descriptor with index 0 (the first index). It is actually an array of 16-bit integers, which indicate
  *  via the language ID table available at USB.org what languages the device supports for its string descriptors.
  */
-const USB_Descriptor_String_t PROGMEM LanguageString = USB_STRING_DESCRIPTOR_ARRAY(LANGUAGE_ID_ENG);
+const USB_Descriptor_String_t PROGMEM language_string = USB_STRING_DESCRIPTOR_ARRAY(LANGUAGE_ID_ENG);
 
 /** Manufacturer descriptor string. This is a Unicode string containing the manufacturer's details in human readable
  *  form, and is read out upon request by the host when the appropriate string ID is requested, listed in the Device
  *  Descriptor.
  */
-const USB_Descriptor_String_t PROGMEM ManufacturerString = USB_STRING_DESCRIPTOR(L"LUFA Library");
+const USB_Descriptor_String_t PROGMEM manufacturer_string = USB_STRING_DESCRIPTOR(L"LUFA Library");
 
 /** Product descriptor string. This is a Unicode string containing the product's details in human readable form,
  *  and is read out upon request by the host when the appropriate string ID is requested, listed in the Device
  *  Descriptor.
  */
-const USB_Descriptor_String_t PROGMEM ProductString = USB_STRING_DESCRIPTOR(L"LUFA Mouse Demo");
+const USB_Descriptor_String_t PROGMEM product_string = USB_STRING_DESCRIPTOR(L"LUFA Mouse Demo");
 
 /** This function is called by the library when in device mode, and must be overridden (see library "USB Descriptors"
  *  documentation) by the application code so that the address and size of a requested descriptor can be given
@@ -201,52 +178,54 @@ const USB_Descriptor_String_t PROGMEM ProductString = USB_STRING_DESCRIPTOR(L"LU
  */
 uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
                                     const uint16_t wIndex,
-                                    const void** const DescriptorAddress)
+                                    const void** const descr_address,
+                                    uint8_t* memory_space)
 {
-    const uint8_t  DescriptorType   = (wValue >> 8);
-    const uint8_t  DescriptorNumber = (wValue & 0xFF);
+    const uint8_t descr_type = (wValue >> 8);
+    const uint8_t descr_number = (wValue & 0xFF);
 
-    const void* Address = NULL;
-    uint16_t    Size    = NO_DESCRIPTOR;
+    const void* addr = NULL;
+    uint16_t size = NO_DESCRIPTOR;
+    uint8_t space = MEMSPACE_FLASH;
 
-    switch (DescriptorType)
-    {
+    switch (descr_type) {
         case DTYPE_Device:
-            Address = &DeviceDescriptor;
-            Size    = sizeof(USB_Descriptor_Device_t);
+            addr = &device_descriptor;
+            size = sizeof(USB_Descriptor_Device_t);
             break;
         case DTYPE_Configuration:
-            Address = &ConfigurationDescriptor;
-            Size    = sizeof(USB_Descriptor_Configuration_t);
+            space = MEMSPACE_RAM;
+            addr = &configuration_descriptor;
+            size = sizeof(USB_Descriptor_Configuration_t);
             break;
         case DTYPE_String:
-            switch (DescriptorNumber)
-            {
+            switch (descr_number) {
                 case STRING_ID_Language:
-                    Address = &LanguageString;
-                    Size    = pgm_read_byte(&LanguageString.Header.Size);
+                    addr = &language_string;
+                    size = pgm_read_byte(&language_string.Header.Size);
                     break;
                 case STRING_ID_Manufacturer:
-                    Address = &ManufacturerString;
-                    Size    = pgm_read_byte(&ManufacturerString.Header.Size);
+                    addr = &manufacturer_string;
+                    size = pgm_read_byte(&manufacturer_string.Header.Size);
                     break;
                 case STRING_ID_Product:
-                    Address = &ProductString;
-                    Size    = pgm_read_byte(&ProductString.Header.Size);
+                    addr = &product_string;
+                    size = pgm_read_byte(&product_string.Header.Size);
                     break;
             }
-
             break;
         case HID_DTYPE_HID:
-            Address = &ConfigurationDescriptor.HID_MouseHID;
-            Size    = sizeof(USB_HID_Descriptor_HID_t);
+            addr = &configuration_descriptor.HID_MouseHID;
+            size = sizeof(USB_HID_Descriptor_HID_t);
             break;
         case HID_DTYPE_Report:
-            Address = &MouseReport;
-            Size    = sizeof(MouseReport);
+            space = MEMSPACE_RAM;
+            addr = hid_report_desc;
+            size = configuration_descriptor.HID_MouseHID.HIDReportLength;
             break;
     }
 
-    *DescriptorAddress = Address;
-    return Size;
+    *descr_address = addr;
+    *memory_space = space;
+    return size;
 }
