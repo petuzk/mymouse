@@ -44,7 +44,7 @@
         #include <stdbool.h>
         #include <string.h>
 
-        #include "Descriptors.h"
+        #include "descriptors.h"
 
         #include <LUFA/Drivers/USB/USB.h>
         #include <LUFA/Platform/Platform.h>

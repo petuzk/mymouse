@@ -2,7 +2,7 @@
 
 #include <LUFA/Drivers/USB/USB.h>
 
-#include "Descriptors.h"
+#include "descriptors.h"
 
 static const uint8_t device_id_response[] = {0x1E, 0x93, 0x89};
 static uint8_t rx_buf[8];

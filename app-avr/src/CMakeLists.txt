@@ -1,5 +1,5 @@
 add_avr_executable(${PROJECT_NAME}
-    Descriptors.c
+    descriptors.c
     Mouse.c
     spi.c
     spi_commands.c
