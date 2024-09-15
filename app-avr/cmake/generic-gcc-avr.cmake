@@ -206,6 +206,7 @@ function(add_avr_executable EXECUTABLE_NAME)
       PROPERTIES
          COMPILE_FLAGS "-mmcu=${AVR_MCU} -I/usr/lib/avr/include ${AVR_EXTRA_COMPILE_FLAGS}"
          LINK_FLAGS "-mmcu=${AVR_MCU} -Wl,-Map,${map_file}"
+         INTERPROCEDURAL_OPTIMIZATION TRUE
    )
 
    add_custom_command(
