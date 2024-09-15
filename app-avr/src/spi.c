@@ -1,3 +1,5 @@
+#include "spi.h"
+
 #include <stdbool.h>
 
 #include <avr/io.h>
@@ -6,6 +8,8 @@
 #include <util/delay.h>
 #include <util/crc16.h>
 
+#include "spi_commands.h"
+
 #define PIN_IRQ PB4
 #define DDR_IRQ DDRB
 
@@ -13,8 +17,8 @@
 static uint8_t num_tx = 0;
 static uint8_t num_rx = 0;
 // data buffers
-static uint8_t tx_data[16];  // first byte not included as it's sent right away
-static uint8_t rx_data[16];
+static const uint8_t* tx_data;  // first byte not included as it's sent right away
+static uint8_t* rx_data;
 // index to the buffer
 static uint8_t tx_idx = 0;
 static uint8_t rx_idx = 0;
@@ -48,19 +52,6 @@ static inline uint8_t is_cs_high() {
     return PINB & (1 << PB0);
 }
 
-static uint8_t prepare_response(const uint8_t command_id) {
-    uint8_t first_tx_byte = 0;
-    switch (command_id) {
-        case 0x06:
-            first_tx_byte = SPDR = 0x1E;
-            tx_data[0] = 0x93;
-            tx_data[1] = 0x89;
-            num_tx = 2;
-            break;
-    }
-    return first_tx_byte;
-}
-
 static inline uint8_t get_next_tx_byte() {
     if (tx_idx < num_tx) {
         uint8_t next_byte = tx_data[tx_idx++];
@@ -74,10 +65,6 @@ static inline void store_rx_byte(const uint8_t value) {
     if (rx_idx < num_rx) {
         rx_data[rx_idx++] = value;
     }
-}
-
-static void process_transaction(const uint8_t command_id) {
-    // TBD
 }
 
 static inline uint8_t wait_for_command_id() {
@@ -129,7 +116,8 @@ void spi_task() {
             return;
         }
         // prepare response (tx and rx buffers)
-        const uint8_t first_tx_byte = prepare_response(command_id);
+        const uint8_t first_tx_byte = prepare_response(command_id, &num_tx, &tx_data, &num_rx, &rx_data);
+        SPDR = first_tx_byte;  // set SPDR as early as possible
 
         tx_crc = _crc_ibutton_update(0, first_tx_byte);
 
@@ -147,7 +135,7 @@ void spi_task() {
         }
         // if there was data received, and the byte amount is correct, process command result
         if (num_rx && rx_idx == num_rx && tx_idx == num_tx) {
-            process_transaction(command_id);
+            process_transaction(command_id, num_tx, tx_data, num_rx, rx_data);
         }
 
         // cleanup
