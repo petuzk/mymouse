@@ -54,7 +54,7 @@
          *
          * This report is written to by the host to enter bootloader.
          */
-        #define HID_REPORTID_DEVICE_CONTROL 1
+        #define HID_REPORTID_DEVICE_CONTROL MAX_REPORTS_NUM
 
     /* Type Defines: */
         /** Type define for the device configuration descriptor structure. This must be defined in the

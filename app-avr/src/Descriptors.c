@@ -129,24 +129,46 @@ static USB_Descriptor_Configuration_t configuration_descriptor =
  */
 #define REPORT_DESCRIPTOR_MAX_SIZE 256
 
+// The full Report descriptor consists of two parts: the Device Control report and the Application report.
+// The Device Control report is used to put the AVR into bootloader mode, and it uses report ID 8.
+// The Application report is obtained from SPI master, and may define reports 0-7.
+// Since the Device Control report has known size, it is put first, and the Application report follows it in memory.
+#define DEVICE_CONTROL_REPORT_DESCRIPTOR { \
+    /* Vendor control report */ \
+    HID_RI_USAGE_PAGE(16, HID_VENDOR_PAGE), /* vendor page 0xDC */ \
+    /* usage seem to not be required, it's anyway meaningless for a vendor-defined report */ \
+    HID_RI_COLLECTION(8, 0x01), /* application collection */ \
+        HID_RI_REPORT_ID(8, HID_REPORTID_DEVICE_CONTROL), \
+        HID_RI_LOGICAL_MINIMUM(8, 0x00), \
+        HID_RI_LOGICAL_MAXIMUM(8, 0xFF), \
+        HID_RI_REPORT_SIZE(8, 0x08), /* 8 bits */ \
+        HID_RI_REPORT_COUNT(16, 1), \
+        HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE), \
+    HID_RI_END_COLLECTION(0), \
+    HID_RI_REPORT_ID(8, 0), /* restore current report ID to 0 */ \
+}
+
+#define DEVICE_CONTROL_REPORT_SIZE sizeof((uint8_t[])DEVICE_CONTROL_REPORT_DESCRIPTOR)
+
 /**
  * @brief HID Report descriptor.
  *
  * HID Report descriptor is not hardcoded, but instead is obtained from SPI master.
  * Therefore it is stored in RAM.
  */
-static uint8_t hid_report_desc[REPORT_DESCRIPTOR_MAX_SIZE];
+static uint8_t hid_report_desc[REPORT_DESCRIPTOR_MAX_SIZE] = DEVICE_CONTROL_REPORT_DESCRIPTOR;
 
-void set_hid_report_size(const uint8_t size) {
-    if (USB_DeviceState == DEVICE_STATE_Unattached && size <= REPORT_DESCRIPTOR_MAX_SIZE) {
-        configuration_descriptor.HID_MouseHID.HIDReportLength = size;
+void set_hid_report_size(uint8_t size) {
+    uint16_t full_size = DEVICE_CONTROL_REPORT_SIZE + (uint16_t)size;
+    if (USB_DeviceState == DEVICE_STATE_Unattached && full_size <= REPORT_DESCRIPTOR_MAX_SIZE) {
+        configuration_descriptor.HID_MouseHID.HIDReportLength = full_size;
     }
 }
 
 void get_hid_report_descriptor_buffer(uint8_t* size, uint8_t** data) {
     if (USB_DeviceState == DEVICE_STATE_Unattached) {
-        *size = configuration_descriptor.HID_MouseHID.HIDReportLength;
-        *data = hid_report_desc;
+        *size = configuration_descriptor.HID_MouseHID.HIDReportLength - DEVICE_CONTROL_REPORT_SIZE;
+        *data = hid_report_desc + DEVICE_CONTROL_REPORT_SIZE;
     } else {
         *size = 0;
     }
