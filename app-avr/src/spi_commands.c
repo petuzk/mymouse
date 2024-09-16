@@ -3,10 +3,10 @@
 #include <LUFA/Drivers/USB/USB.h>
 
 #include "descriptors.h"
+#include "reporting.h"
 
 static const uint8_t device_id_response[] = {0x1E, 0x93, 0x89};
-static uint8_t rx_buf[8];
-static uint8_t report_sizes[MAX_REPORTS_NUM + 1];
+static uint8_t rx_buf[32];
 
 uint8_t prepare_response(
     const uint8_t command_id,
@@ -26,6 +26,10 @@ uint8_t prepare_response(
         *rx_data = rx_buf;
         *num_rx = 1;
     }
+    else if (command_id == 0x0A) { // send report
+        *rx_data = rx_buf;
+        *num_rx = sizeof(rx_buf);
+    }
     return first_tx_byte;
 }
 
@@ -39,5 +43,8 @@ void process_transaction(
     }
     else if (command_id == 0x09) { // enable USB
         if (rx_data[0]) USB_Init();
+    }
+    else if (command_id == 0x0A) { // send report
+        send_report(num_rx, rx_data);
     }
 }

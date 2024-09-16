@@ -67,7 +67,6 @@ int main(void)
     {
         wdt_reset();
         spi_task();
-        Mouse_Task();
         USB_USBTask();
     }
 }
@@ -123,16 +122,7 @@ void EVENT_USB_Device_ControlRequest(void)
         case HID_REQ_GetReport:
             if (USB_ControlRequest.bmRequestType == (REQDIR_DEVICETOHOST | REQTYPE_CLASS | REQREC_INTERFACE))
             {
-                USB_MouseReport_Data_t MouseReportData;
-
-                /* Create the next mouse report for transmission to the host */
-                CreateMouseReport(&MouseReportData);
-
-                Endpoint_ClearSETUP();
-
-                /* Write the report data to the control endpoint */
-                Endpoint_Write_Control_Stream_LE(&MouseReportData, sizeof(MouseReportData));
-                Endpoint_ClearOUT();
+                // TBD
             }
 
             break;
@@ -221,71 +211,4 @@ void EVENT_USB_Device_StartOfFrame(void)
     /* One millisecond has elapsed, decrement the idle time remaining counter if it has not already elapsed */
     if (IdleMSRemaining)
       IdleMSRemaining--;
-}
-
-/** Fills the given HID report data structure with the next HID report to send to the host.
- *
- *  \param[out] ReportData  Pointer to a HID report data structure to be filled
- */
-void CreateMouseReport(USB_MouseReport_Data_t* const ReportData)
-{
-    /* Clear the report contents */
-    memset(ReportData, 0, sizeof(USB_MouseReport_Data_t));
-    ReportData->X = 1;
-}
-
-/** Sends the next HID report to the host, via the keyboard data endpoint. */
-void SendNextReport(void)
-{
-    static USB_MouseReport_Data_t PrevMouseReportData;
-    USB_MouseReport_Data_t        MouseReportData;
-    bool                          SendReport;
-
-    /* Create the next mouse report for transmission to the host */
-    CreateMouseReport(&MouseReportData);
-
-    /* Check to see if the report data has changed - if so a report MUST be sent */
-    SendReport = (memcmp(&PrevMouseReportData, &MouseReportData, sizeof(USB_MouseReport_Data_t)) != 0);
-
-    /* Override the check if the Y or X values are non-zero - we want continuous movement while the joystick
-     * is being held down (via continuous reports), otherwise the cursor will only move once per joystick toggle */
-    if ((MouseReportData.Y != 0) || (MouseReportData.X != 0))
-      SendReport = true;
-
-    /* Check if the idle period is set and has elapsed */
-    if (IdleCount && (!(IdleMSRemaining)))
-    {
-        /* Reset the idle time remaining counter */
-        IdleMSRemaining = IdleCount;
-
-        /* Idle period is set and has elapsed, must send a report to the host */
-        SendReport = true;
-    }
-
-    /* Select the Mouse Report Endpoint */
-    Endpoint_SelectEndpoint(MOUSE_EPADDR);
-
-    /* Check if Mouse Endpoint Ready for Read/Write and if we should send a new report */
-    if (Endpoint_IsReadWriteAllowed() && SendReport)
-    {
-        /* Save the current report data for later comparison to check for changes */
-        PrevMouseReportData = MouseReportData;
-
-        /* Write Mouse Report Data */
-        Endpoint_Write_Stream_LE(&MouseReportData, sizeof(MouseReportData), NULL);
-
-        /* Finalize the stream transfer to send the last packet */
-        Endpoint_ClearIN();
-    }
-}
-
-/** Task to manage HID report generation and transmission to the host, when in report mode. */
-void Mouse_Task(void)
-{
-    /* Device must be connected and configured for the task to run */
-    if (USB_DeviceState != DEVICE_STATE_Configured)
-      return;
-
-    /* Send the next mouse report to the host */
-    SendNextReport();
 }
