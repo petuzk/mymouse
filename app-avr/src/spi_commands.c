@@ -19,10 +19,6 @@ uint8_t prepare_response(
         *tx_data = device_id_response + 1;
         *num_tx = sizeof(device_id_response) - 1;
     }
-    else if (command_id == 0x07) { // set report size
-        *rx_data = report_sizes;
-        *num_rx = sizeof(report_sizes);
-    }
     else if (command_id == 0x08) { // set report descriptor
         get_hid_report_descriptor_buffer(num_rx, rx_data);
     }
@@ -38,8 +34,8 @@ void process_transaction(
     const uint8_t num_tx, const uint8_t* tx_data,
     const uint8_t num_rx, const uint8_t* rx_data
 ) {
-    if (command_id == 0x07) { // set report size
-        set_hid_report_size(report_sizes[MAX_REPORTS_NUM]);
+    if (command_id == 0x08) { // set report descriptor
+        set_hid_report_size(num_rx);
     }
     else if (command_id == 0x09) { // enable USB
         if (rx_data[0]) USB_Init();

@@ -143,7 +143,7 @@ void set_hid_report_size(uint8_t size) {
 
 void get_hid_report_descriptor_buffer(uint8_t* size, uint8_t** data) {
     if (USB_DeviceState == DEVICE_STATE_Unattached) {
-        *size = configuration_descriptor.HID_MouseHID.HIDReportLength - DEVICE_CONTROL_REPORT_SIZE;
+        *size = REPORT_DESCRIPTOR_MAX_SIZE - DEVICE_CONTROL_REPORT_SIZE;
         *data = hid_report_desc + DEVICE_CONTROL_REPORT_SIZE;
     } else {
         *size = 0;

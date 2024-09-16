@@ -133,8 +133,8 @@ void spi_task() {
             transceive_byte(get_next_tx_byte());
             wdt_reset();
         }
-        // if there was data received, and the byte amount is correct, process command result
-        if (num_rx && rx_idx == num_rx && tx_idx == num_tx) {
+        // if there was data received, and all TX was done, process command result
+        if (num_rx && tx_idx == num_tx) {
             process_transaction(command_id, num_tx, tx_data, num_rx, rx_data);
         }
 
