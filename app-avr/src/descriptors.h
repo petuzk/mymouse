@@ -25,7 +25,7 @@
          *
          * This report is written to by the host to enter bootloader.
          */
-        #define HID_REPORTID_DEVICE_CONTROL MAX_REPORTS_NUM
+        #define HID_REPORTID_DEVICE_CONTROL 8  // reports 0-7 are reserved for nRF application
 
     /* Type Defines: */
         /** Type define for the device configuration descriptor structure. This must be defined in the
