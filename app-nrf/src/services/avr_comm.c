@@ -1,5 +1,3 @@
-#include "drivers/avr.h"
-
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -11,6 +9,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#include "hid_report_map.h"
+#include "hid_report_struct.h"
 #include "platform/gpio.h"
 #include "platform/spi.h"
 
@@ -92,6 +92,31 @@ static uint8_t update_crc(uint8_t crc, uint8_t data) {
 }
 
 /**
+ * @brief Perform SPI transfer and validate CRC of received data.
+ */
+static int avr_transceive(struct spi_transfer_spec* spec) {
+    uint32_t rx_len = spec->rx_len;
+    uint8_t* rx_buf = spec->rx_buf;
+
+    int err = spi_transceive_tx_then_rx(spec, &avr_spi_config, CS_PIN);
+    if (err) {
+        LOG_ERR("failed to transceive: %d", err);
+        return err;
+    }
+    if (rx_len) {
+        uint8_t crc = 0;
+        for (uint32_t i = 0; i < rx_len - 1; i++) {
+            crc = update_crc(crc, rx_buf[i]);
+        }
+        if (crc != rx_buf[rx_len-1]) {
+            LOG_WRN("expected crc 0x%x, got 0x%x (payload size %u)", crc, rx_buf[rx_len-1], rx_len);
+            return -EIO;
+        }
+    }
+    return 0;
+}
+
+/**
  * @brief Verify AVR ID via command @c 0x06.
  *
  * Returns negative error code on error, 0 if AVR responds with expected ID and 1 if the ID is incorrect.
@@ -100,18 +125,9 @@ static int verify_avr_id(bool log_err) {
     uint8_t request = 0x06;
     uint8_t response[4];
     struct spi_transfer_spec spec = {&request, 1, response, sizeof(response)};
-    int err = spi_transceive_tx_then_rx(&spec, &avr_spi_config, CS_PIN);
+    int err = avr_transceive(&spec);
     if (err) {
-        LOG_ERR("failed to transceive: %d", err);
         return err;
-    }
-    uint8_t crc = 0;
-    for (int i = 0; i < 3; i++) {
-        crc = update_crc(crc, response[i]);
-    }
-    if (response[3] != crc) {
-        LOG_WRN("crc mismatch: %x %x %x", response[0], response[1], response[2]);
-        return -EAGAIN;
     }
     if (response[0] != 0x1E || response[1] != 0x93 || response[2] != 0x89) {
         if (log_err) {
@@ -122,9 +138,39 @@ static int verify_avr_id(bool log_err) {
     return 0;
 }
 
+static int send_report_descriptor() {
+    uint8_t request[HID_REPORT_MAP_SIZE + 1];
+    request[0] = 0x08; // send report descriptor
+    memcpy(request + 1, hid_report_map, HID_REPORT_MAP_SIZE);
+    struct spi_transfer_spec spec = {request, sizeof(request), NULL, 0};
+    return avr_transceive(&spec);
+}
+
+static int enable_usb() {
+    uint8_t request[] = {0x09, 0x01};  // command id, enable usb
+    struct spi_transfer_spec spec = {request, sizeof(request), NULL, 0};
+    return avr_transceive(&spec);
+}
+
+static int send_report() {
+    struct hid_report report = {.x_delta = 1};
+    uint8_t request[sizeof(report) + 2];  // command + report id + report
+    request[0] = 0x0A; // send report descriptor
+    request[1] = HID_REPORT_ID;
+    memcpy(request + 2, &report, sizeof(report));
+    struct spi_transfer_spec spec = {request, sizeof(request), NULL, 0};
+    return avr_transceive(&spec);
+}
+
 static void avr_comm_loop() {
+    k_usleep(150);
+    send_report_descriptor();
+    k_usleep(150);
+    enable_usb();
     do {
-        k_msleep(500);
+        k_usleep(150);
+        send_report();
+        k_msleep(10);
     } while (verify_avr_id(false) != 1);
 }
 
