@@ -19,7 +19,8 @@ LOG_MODULE_REGISTER(spi);
 #define CS_INACT  1
 
 struct {
-    void (*callback)();
+    void (*callback)(void*);
+    void* arg;
 } spi_isr_ctx = {};
 
 K_MUTEX_DEFINE(spi_mutex);
@@ -96,7 +97,7 @@ static inline bool is_addr_in_ram(const void* ptr)
     return ((((uint32_t)ptr) & 0xE0000000u) == 0x20000000u);
 }
 
-int spi_transceive(const struct spi_transfer_spec* spec, void (*callback)()) {
+int spi_transceive(const struct spi_transfer_spec* spec, void (*callback)(void*), void* arg) {
     CHECK_LOCK_OWNED();
 
     if ((spec->tx_buf != NULL && !is_addr_in_ram(spec->tx_buf)) || (spec->rx_buf != NULL && !is_addr_in_ram(spec->rx_buf))) {
@@ -105,6 +106,7 @@ int spi_transceive(const struct spi_transfer_spec* spec, void (*callback)()) {
     }
 
     spi_isr_ctx.callback = callback;
+    spi_isr_ctx.arg = arg;
 
     nrf_spim_tx_buffer_set(NRF_SPIM0, spec->tx_buf, spec->tx_len);
     nrf_spim_rx_buffer_set(NRF_SPIM0, spec->rx_buf, spec->rx_len);
@@ -116,12 +118,12 @@ int spi_transceive(const struct spi_transfer_spec* spec, void (*callback)()) {
 
 K_SEM_DEFINE(spi_sync_sem, 0, 1);
 
-static void spi_transceive_sync_callback() {
-    k_sem_give(&spi_sync_sem);
+static void spi_transceive_sync_callback(void* arg) {
+    k_sem_give((struct k_sem*) arg);
 }
 
 int spi_transceive_sync(struct spi_transfer_spec* spec) {
-    int err = spi_transceive(spec, spi_transceive_sync_callback);
+    int err = spi_transceive(spec, spi_transceive_sync_callback, &spi_sync_sem);
     if (err) {
         return err;
     }
@@ -134,18 +136,19 @@ static struct {
     void* rx_buf;
 } spi_tx_then_rx_cb_ctx;
 
-static void spi_tx_then_rx_spi_done_callback() {
+static void spi_tx_then_rx_spi_done_callback(void* arg) {
+    struct k_sem* sem = arg;
     if (spi_tx_then_rx_cb_ctx.rx_buf) {
         // the SPI task/event latency is about 6 us in total, and rescheduling another transaction takes ~5us
         // the total latency is more than required delay t_{SRAD} = 4us, so no additional delay needed
         struct spi_transfer_spec spec = {NULL, 0, spi_tx_then_rx_cb_ctx.rx_buf, spi_tx_then_rx_cb_ctx.rx_len};
         spi_tx_then_rx_cb_ctx.rx_buf = NULL;
-        spi_tx_then_rx_cb_ctx.err = spi_transceive(&spec, spi_tx_then_rx_spi_done_callback);
+        spi_tx_then_rx_cb_ctx.err = spi_transceive(&spec, spi_tx_then_rx_spi_done_callback, sem);
         if (!spi_tx_then_rx_cb_ctx.err) {
             return;  // wait for callback from second transaction
         }
     }
-    k_sem_give(&spi_sync_sem);
+    k_sem_give(sem);
 }
 
 int spi_transceive_tx_then_rx(struct spi_transfer_spec* spec,
@@ -172,7 +175,7 @@ int spi_transceive_tx_then_rx(struct spi_transfer_spec* spec,
 
     spec->rx_len = 0;
     spec->rx_buf = NULL;
-    err = spi_transceive(spec, spi_tx_then_rx_spi_done_callback);
+    err = spi_transceive(spec, spi_tx_then_rx_spi_done_callback, &spi_sync_sem);
     if (unlikely(err)) {
         LOG_ERR("can't start spi %cx transfer: error %d", 't', err);
         goto exit;
@@ -210,7 +213,7 @@ static void spi_irq_handler() {
     nrf_spim_event_clear(NRF_SPIM0, NRF_SPIM_EVENT_END);
     if (spi_isr_ctx.callback) {
         is_in_spi_isr = true;
-        spi_isr_ctx.callback();
+        spi_isr_ctx.callback(spi_isr_ctx.arg);
         is_in_spi_isr = false;
     }
 }

@@ -59,7 +59,7 @@ int spi_configure(const struct spi_configuration* config);
  * SPIM transfer with DMA engine. The specified callback is called from ISR when
  * the transfer is done.
  */
-int spi_transceive(const struct spi_transfer_spec* spec, void (*callback)());
+int spi_transceive(const struct spi_transfer_spec* spec, void (*callback)(void*), void* arg);
 
 /**
  * @brief Similar to spi_transceive, but waits for the transaction to end.
