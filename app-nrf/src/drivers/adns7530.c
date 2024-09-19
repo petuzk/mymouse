@@ -32,9 +32,33 @@ const static struct spi_configuration adns7530_spi_config = {
     .is_const = true,
 };
 
+static struct {
+    int err;
+    int rx_len;
+    void* rx_buf;
+} adns7530_spi_cb_ctx;
+
+static void adns7530_spi_done_callback(void* arg) {
+    if (adns7530_spi_cb_ctx.rx_buf) {
+        // the SPI task/event latency is about 6 us in total, and rescheduling another transaction takes ~5us
+        // the total latency is more than required delay t_{SRAD} = 4us, so no additional delay needed
+        struct spi_transfer_spec rx_spec = {NULL, 0, adns7530_spi_cb_ctx.rx_buf, adns7530_spi_cb_ctx.rx_len};
+        adns7530_spi_cb_ctx.rx_buf = NULL;
+        adns7530_spi_cb_ctx.err = spi_transceive(&rx_spec, adns7530_spi_done_callback, arg);
+        if (!adns7530_spi_cb_ctx.err) {
+            return;  // wait for callback from second transaction
+        }
+    }
+    k_sem_give((struct k_sem*)arg);
+}
+
 static int adns7530_spi_transceive(void* tx_buf, uint32_t tx_len, void* rx_buf, uint32_t rx_len) {
-    struct spi_transfer_spec spec = {tx_buf, tx_len, rx_buf, rx_len};
-    return spi_transceive_tx_then_rx(&spec, &adns7530_spi_config, CS_PIN);
+    struct spi_transfer_spec tx_spec = {tx_buf, tx_len, NULL, 0};
+    adns7530_spi_cb_ctx.err = -EIO;  // will remain unchanged if the callback is never called
+    adns7530_spi_cb_ctx.rx_len = rx_len;
+    adns7530_spi_cb_ctx.rx_buf = rx_buf;
+    int err = spi_transceive_managed(&adns7530_spi_config, CS_PIN, &tx_spec, adns7530_spi_done_callback, K_USEC(1000));
+    return err ? err : adns7530_spi_cb_ctx.err;
 }
 
 static inline int adns7530_reg_read(uint8_t reg, void* dst, uint32_t count) {

@@ -130,29 +130,9 @@ int spi_transceive_sync(struct spi_transfer_spec* spec) {
     return k_sem_take(&spi_sync_sem, K_FOREVER);
 }
 
-static struct {
-    int err;
-    int rx_len;
-    void* rx_buf;
-} spi_tx_then_rx_cb_ctx;
-
-static void spi_tx_then_rx_spi_done_callback(void* arg) {
-    struct k_sem* sem = arg;
-    if (spi_tx_then_rx_cb_ctx.rx_buf) {
-        // the SPI task/event latency is about 6 us in total, and rescheduling another transaction takes ~5us
-        // the total latency is more than required delay t_{SRAD} = 4us, so no additional delay needed
-        struct spi_transfer_spec spec = {NULL, 0, spi_tx_then_rx_cb_ctx.rx_buf, spi_tx_then_rx_cb_ctx.rx_len};
-        spi_tx_then_rx_cb_ctx.rx_buf = NULL;
-        spi_tx_then_rx_cb_ctx.err = spi_transceive(&spec, spi_tx_then_rx_spi_done_callback, sem);
-        if (!spi_tx_then_rx_cb_ctx.err) {
-            return;  // wait for callback from second transaction
-        }
-    }
-    k_sem_give(sem);
-}
-
-int spi_transceive_tx_then_rx(struct spi_transfer_spec* spec,
-                              const struct spi_configuration* config, uint32_t cs_pin) {
+int spi_transceive_managed(const struct spi_configuration* config, const uint32_t cs_pin,
+                           const struct spi_transfer_spec* spec, void (*callback)(void*),
+                           const k_timeout_t timeout) {
     int err;
 
     err = spi_lock(K_MSEC(100));
@@ -169,31 +149,19 @@ int spi_transceive_tx_then_rx(struct spi_transfer_spec* spec,
 
     nrf_gpio_pin_write(cs_pin, !CS_INACT);
 
-    spi_tx_then_rx_cb_ctx.err = 0;
-    spi_tx_then_rx_cb_ctx.rx_len = spec->rx_len;
-    spi_tx_then_rx_cb_ctx.rx_buf = spec->rx_buf;
-
-    spec->rx_len = 0;
-    spec->rx_buf = NULL;
-    err = spi_transceive(spec, spi_tx_then_rx_spi_done_callback, &spi_sync_sem);
+    err = spi_transceive(spec, callback, &spi_sync_sem);
     if (unlikely(err)) {
         LOG_ERR("can't start spi %cx transfer: error %d", 't', err);
         goto exit;
     }
 
-    err = k_sem_take(&spi_sync_sem, K_USEC(1000));
+    err = k_sem_take(&spi_sync_sem, timeout);
     if (unlikely(err)) {
         if (err == -EAGAIN) {
             LOG_ERR("timed out waiting for spi transaction to end");
         } else {
             LOG_ERR("got error %d while waiting for spi transaction to end", err);
         }
-        goto exit;
-    }
-
-    err = spi_tx_then_rx_cb_ctx.err;  // return code of second spi transaction
-    if (unlikely(err)) {
-        LOG_ERR("can't start spi %cx transfer: error %d", 'r', err);
         goto exit;
     }
 

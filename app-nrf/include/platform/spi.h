@@ -67,10 +67,14 @@ int spi_transceive(const struct spi_transfer_spec* spec, void (*callback)(void*)
 int spi_transceive_sync(struct spi_transfer_spec* spec);
 
 /**
- * @brief Initiate an SPI data transfer, with reception occuring after transmission.
+ * @brief Perform an SPI data transfer with given SPI configuration and managed CS pin.
  *
- * This is a higher-level interface that also manages SPI lock, configuration and CS pin state.
- * Note: this function modifies passed spec.
+ * This is a higher-level interface that manages SPI lock, SPI configuration and CS pin state.
+ * When the transfer is completed, it calls the callback from ISR context and passes a semafore
+ * that the caller thread awaits on with the specified timeout. The callback can then either
+ * perform an additional transmission(s) with @ref spi_transceive, or give the semafore to signal
+ * the completion and unblock the caller thread. Upon return, the function will pull CS high.
  */
-int spi_transceive_tx_then_rx(struct spi_transfer_spec* spec,
-                              const struct spi_configuration* config, uint32_t cs_pin);
+int spi_transceive_managed(const struct spi_configuration* config, uint32_t cs_pin,
+                           const struct spi_transfer_spec* spec, void (*callback)(void*),
+                           k_timeout_t timeout);
