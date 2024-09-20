@@ -91,25 +91,68 @@ static uint8_t update_crc(uint8_t crc, uint8_t data) {
     return crc;
 }
 
+#define HANDSHAKE_NUM_BYTES 2  // having 2-byte handshake rather than 1-byte also addresses PAN 58
+#define HANDSHAKE_TX_VALUE  0x42
+#define HANDSHAKE_RX_VALUE  0x43
+
+static struct {
+    int err;
+    uint8_t handshake_rx_buf[HANDSHAKE_NUM_BYTES];
+    const struct spi_transfer_spec* spec;
+} avr_spi_cb_ctx;
+
+static void avr_spi_done_callback(void* arg) {
+    if (avr_spi_cb_ctx.spec) {
+        if (avr_spi_cb_ctx.handshake_rx_buf[0] != HANDSHAKE_RX_VALUE) {
+            // AVR didn't respond to handshake, abort the transaction
+            avr_spi_cb_ctx.err = -EBUSY;
+        } else {
+            avr_spi_cb_ctx.err = spi_transceive(avr_spi_cb_ctx.spec, avr_spi_done_callback, arg);
+            if (!avr_spi_cb_ctx.err) {
+                avr_spi_cb_ctx.spec = NULL;
+                return;  // wait for callback from second transaction
+            }
+        }
+    }
+    k_sem_give((struct k_sem*)arg);
+}
+
 /**
  * @brief Perform SPI transfer and validate CRC of received data.
  */
-static int avr_transceive(struct spi_transfer_spec* spec) {
-    uint32_t rx_len = spec->rx_len;
-    uint8_t* rx_buf = spec->rx_buf;
+static int avr_transceive(uint8_t command_id, const struct spi_transfer_spec* data_spec) {
+    uint8_t handshake_tx_buf[HANDSHAKE_NUM_BYTES] = {HANDSHAKE_TX_VALUE, command_id};
+    struct spi_transfer_spec handshake = {
+        handshake_tx_buf, HANDSHAKE_NUM_BYTES,
+        avr_spi_cb_ctx.handshake_rx_buf, HANDSHAKE_NUM_BYTES,
+    };
 
-    int err = spi_transceive_tx_then_rx(spec, &avr_spi_config, CS_PIN);
+    avr_spi_cb_ctx.err = -EIO;  // will remain unchanged if the callback is never called
+    avr_spi_cb_ctx.spec = data_spec;
+    avr_spi_cb_ctx.handshake_rx_buf[0] = 0;
+
+    int err = spi_transceive_managed(&avr_spi_config, CS_PIN, &handshake, avr_spi_done_callback, K_USEC(2000));
     if (err) {
-        LOG_ERR("failed to transceive: %d", err);
+        LOG_ERR("failed to transceive %s: %d", "handshake", err);
         return err;
     }
-    if (rx_len) {
-        uint8_t crc = 0;
-        for (uint32_t i = 0; i < rx_len - 1; i++) {
+    if (avr_spi_cb_ctx.err) {
+        if (avr_spi_cb_ctx.err == -EBUSY) {
+            LOG_WRN("handshake failed");
+        } else {
+            LOG_ERR("failed to transceive %s: %d", "data", avr_spi_cb_ctx.err);
+        }
+        return avr_spi_cb_ctx.err;
+    }
+
+    if (data_spec->rx_len) {
+        uint8_t i = 0, crc = 0;
+        uint8_t* rx_buf = data_spec->rx_buf;
+        for (; i < data_spec->rx_len - 1; i++) {
             crc = update_crc(crc, rx_buf[i]);
         }
-        if (crc != rx_buf[rx_len-1]) {
-            LOG_WRN("expected crc 0x%x, got 0x%x (payload size %u)", crc, rx_buf[rx_len-1], rx_len);
+        if (crc != rx_buf[i]) {
+            LOG_ERR("expected crc 0x%x, got 0x%x (payload size %u)", crc, rx_buf[i], data_spec->rx_len);
             return -EIO;
         }
     }
@@ -122,10 +165,9 @@ static int avr_transceive(struct spi_transfer_spec* spec) {
  * Returns negative error code on error, 0 if AVR responds with expected ID and 1 if the ID is incorrect.
  */
 static int verify_avr_id(bool log_err) {
-    uint8_t request = 0x06;
     uint8_t response[4];
-    struct spi_transfer_spec spec = {&request, 1, response, sizeof(response)};
-    int err = avr_transceive(&spec);
+    struct spi_transfer_spec spec = {NULL, 0, response, sizeof(response)};
+    int err = avr_transceive(0x06, &spec);
     if (err) {
         return err;
     }
@@ -139,27 +181,29 @@ static int verify_avr_id(bool log_err) {
 }
 
 static int send_report_descriptor() {
-    uint8_t request[HID_REPORT_MAP_SIZE + 1];
-    request[0] = 0x08; // send report descriptor
-    memcpy(request + 1, hid_report_map, HID_REPORT_MAP_SIZE);
-    struct spi_transfer_spec spec = {request, sizeof(request), NULL, 0};
-    return avr_transceive(&spec);
+    // the buffer has to be in RAM for DMA to work, so we need to copy descriptor onto stack
+    uint8_t report_descriptor[HID_REPORT_MAP_SIZE];
+    memcpy(report_descriptor, hid_report_map, HID_REPORT_MAP_SIZE);
+    struct spi_transfer_spec spec = {report_descriptor, HID_REPORT_MAP_SIZE, NULL, 0};
+    return avr_transceive(0x08, &spec);
 }
 
 static int enable_usb() {
-    uint8_t request[] = {0x09, 0x01};  // command id, enable usb
-    struct spi_transfer_spec spec = {request, sizeof(request), NULL, 0};
-    return avr_transceive(&spec);
+    uint8_t payload = 0x01;
+    struct spi_transfer_spec spec = {&payload, sizeof(payload), NULL, 0};
+    return avr_transceive(0x09, &spec);
 }
 
 static int send_report() {
-    struct hid_report report = {.x_delta = 1};
-    uint8_t request[sizeof(report) + 2];  // command + report id + report
-    request[0] = 0x0A; // send report descriptor
-    request[1] = HID_REPORT_ID;
-    memcpy(request + 2, &report, sizeof(report));
-    struct spi_transfer_spec spec = {request, sizeof(request), NULL, 0};
-    return avr_transceive(&spec);
+    struct {
+        uint8_t report_id;
+        struct hid_report report;
+    } payload = {
+        .report_id = HID_REPORT_ID,
+        .report = {.x_delta = 1}
+    };
+    struct spi_transfer_spec spec = {&payload, sizeof(payload), NULL, 0};
+    return avr_transceive(0x0A, &spec);
 }
 
 static void avr_comm_loop() {

@@ -67,8 +67,8 @@ static inline void store_rx_byte(const uint8_t value) {
     }
 }
 
-static inline uint8_t wait_for_command_id() {
-    // wait for up to 1 ms to receive command id
+static inline uint8_t wait_for_rx_byte() {
+    // wait for up to 1 ms to receive
     uint16_t wait_counter = 1000;
     while (!(SPSR & (1 << SPIF)) && wait_counter--) {
         _delay_us(1);
@@ -100,6 +100,16 @@ static inline void transceive_byte(const register uint8_t tx_byte) {
     sei();
 }
 
+static inline bool handshake() {
+    // queue 0x43 to be transmitted as a handshake
+    SPDR = 0x43;
+    if (wait_for_rx_byte() != 0x42) {
+        SPDR = 0;  // reset SPDR in case waiting for RX timed out, so that 0x43 is not shifted out later accidentally
+        return false;
+    }
+    return true;
+}
+
 void spi_task() {
     // SPI should only be enabled once nRF sets CS high
     if (!(SPCR & (1 << SPE))) {
@@ -111,7 +121,10 @@ void spi_task() {
         return;
     }
     if (!is_cs_high()) {
-        const uint8_t command_id = wait_for_command_id();
+        if (!handshake()) {
+            return;
+        }
+        const uint8_t command_id = wait_for_rx_byte();
         if (!command_id) {
             return;
         }
