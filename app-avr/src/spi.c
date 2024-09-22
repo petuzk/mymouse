@@ -147,8 +147,8 @@ void spi_task() {
             wdt_reset();
         }
         // if there was data received, and all TX was done, process command result
-        if (num_rx && tx_idx == num_tx) {
-            process_transaction(command_id, num_tx, tx_data, num_rx, rx_data);
+        if (rx_idx && tx_idx == num_tx) {
+            process_transaction(command_id, tx_idx, tx_data, rx_idx, rx_data);
         }
 
         // cleanup
