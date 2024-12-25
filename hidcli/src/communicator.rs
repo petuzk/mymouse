@@ -66,38 +66,33 @@ pub struct Device {
     communicator: DeviceCommunicator,
 }
 
-impl Device {
-    // mutable borrow ensures there's only one user of communicator at a time,
-    // and that the mode can't be changed until that communicator is dropped
-    pub fn app_communicator(&mut self) -> Result<&AppCommunicator> {
-        match self.communicator {
-            DeviceCommunicator::App(ref comm) => Ok(comm),
-            DeviceCommunicator::Bootloader(ref comm) => {
-                comm.enter_app()?;
-                self.communicator = wait_for_comm(Duration::from_secs(5))?;
+macro_rules! impl_communicator_getter {
+    ($desired_mode:ident, $other_mode:ident) => {
+        paste::paste! {
+            // mutable borrow ensures there's only one user of communicator at a time,
+            // and that the mode can't be changed until that communicator is dropped
+            pub fn [<$desired_mode:lower _communicator>](&mut self) -> Result<&[<$desired_mode Communicator>]> {
                 match self.communicator {
-                    DeviceCommunicator::App(ref comm) => Ok(comm),
-                    DeviceCommunicator::Bootloader(_) => {
-                        Err(anyhow!("device is still in bootloader"))
+                    DeviceCommunicator::$desired_mode(ref comm) => Ok(comm),
+                    DeviceCommunicator::$other_mode(ref comm) => {
+                        comm.[<enter_ $desired_mode:lower>]()?;
+                        self.communicator = wait_for_comm(Duration::from_secs(5))?;
+                        match self.communicator {
+                            DeviceCommunicator::$desired_mode(ref comm) => Ok(comm),
+                            DeviceCommunicator::$other_mode(_) => Err(anyhow!(
+                                concat!("device is still in ", stringify!([<$other_mode:lower>]))
+                            )),
+                        }
                     }
                 }
             }
         }
-    }
+    };
+}
 
-    pub fn bootloader_communicator(&mut self) -> Result<&BootloaderCommunicator> {
-        match self.communicator {
-            DeviceCommunicator::Bootloader(ref comm) => Ok(comm),
-            DeviceCommunicator::App(ref comm) => {
-                comm.enter_bootloader()?;
-                self.communicator = wait_for_comm(Duration::from_secs(5))?;
-                match self.communicator {
-                    DeviceCommunicator::Bootloader(ref comm) => Ok(comm),
-                    DeviceCommunicator::App(_) => Err(anyhow!("device is still in app")),
-                }
-            }
-        }
-    }
+impl Device {
+    impl_communicator_getter!(App, Bootloader);
+    impl_communicator_getter!(Bootloader, App);
 
     pub fn current_communicator(&mut self) -> &DeviceCommunicator {
         &self.communicator
