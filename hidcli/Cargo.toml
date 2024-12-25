@@ -1,0 +1,13 @@
+[package]
+name = "hidcli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.89"
+clap = { version = "4.5.18", features = ["derive"] }
+deku = "0.18.1"
+elf = "0.7.4"
+hidapi = "2.6.3"
+indicatif = "0.17.9"
+thiserror = "1.0.64"
