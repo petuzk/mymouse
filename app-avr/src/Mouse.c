@@ -91,11 +91,6 @@ void EVENT_USB_Device_Connect(void)
     UsingReportProtocol = true;
 }
 
-/** Event handler for the USB_Disconnect event. This indicates that the device is no longer connected to a host via
- *  the status LEDs and stops the USB management and Mouse reporting tasks.
- */
-void EVENT_USB_Device_Disconnect(void) {}
-
 /** Event handler for the USB_ConfigurationChanged event. This is fired when the host sets the current configuration
  *  of the USB device after enumeration - the device endpoints are configured and the mouse reporting task started.
  */
